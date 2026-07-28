@@ -1,0 +1,128 @@
+// Thin wrappers around Frappe's method API (cookie-auth + CSRF, JSON only).
+
+export const COMPANY =
+  (typeof window !== "undefined" && window.task_hub_company) || "Justyol Morocco";
+
+export function getUserRoles() {
+  return typeof window !== "undefined" && Array.isArray(window.user_roles)
+    ? window.user_roles
+    : [];
+}
+
+export function hasRole(...roles) {
+  const have = new Set(getUserRoles());
+  if (have.has("Administrator") || have.has("System Manager")) return true;
+  return roles.some((r) => have.has(r));
+}
+
+export function currentUserId() {
+  return (typeof window !== "undefined" && window.user_id) || "Guest";
+}
+
+function getCsrf() {
+  if (typeof window !== "undefined" && window.csrf_token) return window.csrf_token;
+  const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
+export function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Frappe wraps server messages as a JSON string inside a JSON-array string.
+export function parseServerMessages(raw) {
+  if (!raw) return "";
+  try {
+    const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (!Array.isArray(arr)) return String(raw);
+    return arr
+      .map((m) => {
+        if (m && typeof m === "object") return m.message || JSON.stringify(m);
+        try {
+          return JSON.parse(m).message || m;
+        } catch {
+          return m;
+        }
+      })
+      .join(" · ");
+  } catch {
+    return String(raw);
+  }
+}
+
+// GET a whitelisted method (read-only, no CSRF needed).
+export async function getMethod(method, params = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.append(k, v);
+  });
+  const url = "/api/method/" + method + (qs.toString() ? "?" + qs.toString() : "");
+  const resp = await fetch(url, {
+    credentials: "include",
+    headers: { Accept: "application/json" },
+  });
+  let j = {};
+  try {
+    j = await resp.json();
+  } catch {}
+  if (!resp.ok || j.exc) {
+    const msg = parseServerMessages(j._server_messages) || j.exc || "HTTP " + resp.status;
+    throw new Error(msg);
+  }
+  return j.message;
+}
+
+// POST to a whitelisted method (handles CSRF + server-message parsing).
+export async function callMethod(method, args = {}) {
+  const resp = await fetch("/api/method/" + method, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Frappe-CSRF-Token": getCsrf(),
+      Accept: "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+  let j = {};
+  try {
+    j = await resp.json();
+  } catch {}
+  if (!resp.ok || j.exc) {
+    const msg = parseServerMessages(j._server_messages) || j.exc || "HTTP " + resp.status;
+    const err = new Error(msg);
+    err.payload = j.message || j;
+    err.status = resp.status;
+    throw err;
+  }
+  return j.message;
+}
+
+// ---- formatting helpers -------------------------------------------------
+export function relTime(value) {
+  if (!value) return "";
+  const d = new Date(String(value).replace(" ", "T"));
+  if (isNaN(d.getTime())) return "";
+  const diff = (Date.now() - d.getTime()) / 1000;
+  const abs = Math.abs(diff);
+  const fut = diff < 0;
+  const fmt = (n, u) => `${n} ${u}${n === 1 ? "" : "s"} ${fut ? "left" : "ago"}`;
+  if (abs < 60) return fut ? "soon" : "just now";
+  if (abs < 3600) return fmt(Math.round(abs / 60), "min");
+  if (abs < 86400) return fmt(Math.round(abs / 3600), "hour");
+  if (abs < 2592000) return fmt(Math.round(abs / 86400), "day");
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+export function fmtDate(value) {
+  if (!value) return "—";
+  const d = new Date(String(value).replace(" ", "T"));
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}

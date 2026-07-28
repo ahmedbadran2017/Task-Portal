@@ -1,0 +1,24 @@
+from . import __version__ as app_version  # noqa: F401
+
+app_name = "task_hub"
+app_title = "Task Hub"
+app_publisher = "Justyol"
+app_description = "Cross-department task & issue management for the Justyol portals"
+app_email = "info@justyol.com"
+app_license = "MIT"
+
+# Website route rules — serve the Vue SPA for all /taskhub/* routes
+website_route_rules = [
+    {"from_route": "/taskhub/<path:app_path>", "to_route": "taskhub"},
+    {"from_route": "/taskhub", "to_route": "taskhub"},
+]
+
+# Install / Migrate hooks
+after_install = "task_hub.install.after_install"
+after_migrate = [
+    "task_hub.install._create_portal_roles",
+]
+
+# Hub Ticket lifecycle (SLA, activity log, status stamps) lives in the DocType
+# controller class — task_hub/task_hub/doctype/hub_ticket/hub_ticket.py — so no
+# doc_events wiring is needed here.

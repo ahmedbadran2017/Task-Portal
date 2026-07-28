@@ -1,0 +1,23 @@
+import { createRouter, createWebHistory } from "vue-router";
+
+import Dashboard from "./pages/Dashboard.vue";
+import Board from "./pages/Board.vue";
+import TicketList from "./pages/TicketList.vue";
+
+const routes = [
+  { path: "/", redirect: "/dashboard" },
+  { path: "/dashboard", name: "dashboard", component: Dashboard },
+  { path: "/board", name: "board", component: Board },
+  { path: "/tickets", name: "tickets", component: TicketList },
+];
+
+const router = createRouter({
+  // Served under /taskhub by Frappe's website_route_rules.
+  history: createWebHistory("/taskhub"),
+  routes,
+  scrollBehavior() {
+    return { top: 0 };
+  },
+});
+
+export default router;
