@@ -123,6 +123,14 @@ export function whoami() {
   return getMethod(`${M}.auth.whoami`);
 }
 
+export function getDepartmentScorecard(days = 30) {
+  return getMethod(`${M}.scorecards.department_scorecard`, { days });
+}
+
+export function getEmployeeScorecard(days = 30, department = "") {
+  return getMethod(`${M}.scorecards.employee_scorecard`, { days, department });
+}
+
 export function getSettings() {
   return getMethod(`${M}.settings.get_settings`);
 }

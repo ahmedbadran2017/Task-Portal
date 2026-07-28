@@ -233,6 +233,54 @@ def notify_sla_risks():
     frappe.db.commit()
 
 
+# ════════════════════════════════════════════════════════════ monthly scorecard
+def send_monthly_scorecard():
+    """Monthly: department + top-performer scorecard to the managers. Reuses
+    the weekly_digest toggle — one switch controls both periodic reports."""
+    s = _settings()
+    if not s or not cint(s.weekly_digest):
+        return
+    from task_hub.api.scorecards import department_scorecard, employee_scorecard
+
+    frappe.set_user("Administrator")
+    depts = department_scorecard(days=30)["departments"]
+    people = employee_scorecard(days=30)["employees"][:10]
+    if not depts and not people:
+        return
+
+    drows = "".join(
+        f"<tr><td>{d['department']}</td><td>{d['members']}</td><td>{d['open']}</td>"
+        f"<td>{d['breached']}</td><td>{d['resolved']}</td>"
+        f"<td>{d['avg_resolution_hours'] if d['avg_resolution_hours'] is not None else '—'}</td>"
+        f"<td>{str(d['sla_compliance_pct']) + '%' if d['sla_compliance_pct'] is not None else '—'}</td></tr>"
+        for d in depts
+    )
+    prows = "".join(
+        f"<tr><td>{p['full_name']}</td><td>{p['resolved']}</td><td>{p['open']}</td>"
+        f"<td>{p['avg_resolution_hours'] if p['avg_resolution_hours'] is not None else '—'}</td>"
+        f"<td>{str(p['sla_compliance_pct']) + '%' if p['sla_compliance_pct'] is not None else '—'}</td></tr>"
+        for p in people
+    )
+    _sendmail(
+        _manager_emails(s),
+        "[Task Hub] Monthly performance scorecard",
+        f"""<p>Task Hub — last 30 days.</p>
+        <h4>Departments</h4>
+        <table border="1" cellpadding="6" cellspacing="0">
+          <tr><th>Department</th><th>People</th><th>Open</th><th>Breached</th>
+              <th>Resolved</th><th>Avg hours</th><th>SLA on-time</th></tr>
+          {drows}
+        </table>
+        <h4>Top resolvers</h4>
+        <table border="1" cellpadding="6" cellspacing="0">
+          <tr><th>Person</th><th>Resolved</th><th>Open now</th>
+              <th>Avg hours</th><th>SLA on-time</th></tr>
+          {prows}
+        </table>
+        <p><a href="/taskhub/teams">Open the Teams view →</a></p>""",
+    )
+
+
 # ════════════════════════════════════════════════════════════ weekly digest
 def send_weekly_digest():
     s = _settings()

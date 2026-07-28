@@ -157,6 +157,7 @@ const filters = reactive({
   breached_only: 0,
   mine: 0,
   unassigned: 0,
+  department: "",
 });
 
 const quickChips = [
@@ -172,6 +173,7 @@ function applyRouteQuery() {
   filters.mine = q.mine ? 1 : 0;
   filters.unassigned = q.unassigned ? 1 : 0;
   if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
+  filters.department = typeof q.department === "string" ? q.department : "";
 }
 
 async function load() {

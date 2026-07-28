@@ -91,13 +91,15 @@ def create_ticket(**kwargs):
 @frappe.whitelist()
 def list_tickets(status=None, priority=None, source_portal=None,
                  assigned_to=None, reported_by=None, ticket_type=None,
-                 search=None, breached_only=0, mine=0, unassigned=0,
-                 limit=100, start=0, order_by="modified desc"):
+                 department=None, search=None, breached_only=0, mine=0,
+                 unassigned=0, limit=100, start=0, order_by="modified desc"):
     """Filtered ticket list for the Hub board / list views."""
     gate_read()
     filters = {}
     if status:
         filters["status"] = status
+    if department:
+        filters["department"] = department
     if int(unassigned or 0):
         filters["assigned_to"] = ["in", (None, "")]
     if priority:

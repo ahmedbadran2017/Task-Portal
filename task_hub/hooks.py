@@ -36,4 +36,7 @@ scheduler_events = {
     "weekly": [
         "task_hub.automation.send_weekly_digest",
     ],
+    "monthly": [
+        "task_hub.automation.send_monthly_scorecard",
+    ],
 }

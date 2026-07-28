@@ -113,10 +113,11 @@ const logoSrc = import.meta.env.DEV
   : "/assets/task_hub/justyol-logo.png";
 
 const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: "▤" },
-  { to: "/board", label: "Board", icon: "▦" },
-  { to: "/tickets", label: "All Tickets", icon: "☰" },
-  { to: "/settings", label: "Settings", icon: "⚙" },
+  { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  { to: "/board", label: "Board", icon: "board" },
+  { to: "/tickets", label: "All Tickets", icon: "list" },
+  { to: "/teams", label: "Teams", icon: "users" },
+  { to: "/settings", label: "Settings", icon: "settings" },
 ];
 
 const fullName = (typeof window !== "undefined" && window.full_name) || "User";

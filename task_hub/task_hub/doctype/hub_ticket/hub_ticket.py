@@ -14,16 +14,18 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime, get_datetime, add_to_date
 
 
-# Portal → department label. Kept here so the whole app agrees on the mapping.
+# Portal → default ERPNext Department, used only when the reporter has no
+# Employee record (external systems, Administrator, automations). Names must
+# match real `tabDepartment` rows — guarded by an exists() check before use.
 PORTAL_DEPARTMENT = {
-    "Supplier": "Supplier Operations",
-    "Accounting": "Finance & Accounting",
-    "Logistics": "Logistics & Fulfilment",
-    "Purchasing": "Procurement",
-    "JoyAgent": "JoyAgent — WhatsApp Support",
-    "Website": "Justyol Website",
-    "Mobile App": "Justyol Mobile App",
-    "Other": "General",
+    "Supplier": "Operations - JM",
+    "Accounting": "Accounts - JM",
+    "Logistics": "Logistics - JM",
+    "Purchasing": "Purchase - JM",
+    "JoyAgent": "Customer Service - JM",
+    "Website": "Ecommerce - ML",
+    "Mobile App": "Ecommerce - ML",
+    "Other": None,
 }
 
 # Statuses that mean the ticket is done — freeze the SLA clock here.
@@ -90,8 +92,18 @@ class HubTicket(Document):
 
     # -------------------------------------------------------------- helpers
     def _sync_department(self):
+        """Stamp the real ERPNext Department: an explicitly-set valid value
+        wins, else the reporter's Employee department, else the portal's
+        default. Invalid names are dropped rather than failing the save."""
+        if self.department and not frappe.db.exists("Department", self.department):
+            self.department = None
+        if self.department:
+            return
+        self.department = resolve_user_department(self.reported_by) or None
         if not self.department:
-            self.department = PORTAL_DEPARTMENT.get(self.source_portal or "Other", "General")
+            fallback = PORTAL_DEPARTMENT.get(self.source_portal or "Other")
+            if fallback and frappe.db.exists("Department", fallback):
+                self.department = fallback
 
     def _set_sla_deadline(self):
         hours = _sla_hours().get(self.priority or "Medium", 72)
@@ -138,6 +150,15 @@ class HubTicket(Document):
         except Exception:
             frappe.log_error(message=frappe.get_traceback(),
                              title="task_hub: assignment email failed")
+
+
+def resolve_user_department(user):
+    """The user's real department from their Employee record, or None."""
+    if not user or user in ("Guest", "Administrator"):
+        return None
+    dept = frappe.db.get_value("Employee", {"user_id": user, "status": "Active"},
+                               "department")
+    return dept if dept and frappe.db.exists("Department", dept) else None
 
 
 def refresh_sla_breaches():
