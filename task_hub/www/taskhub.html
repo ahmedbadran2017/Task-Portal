@@ -2,8 +2,19 @@
 
 {%- block head %}
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Justyol Task Hub</title>
+
+<!-- PWA: installable on Android (Chrome) & iOS (Add to Home Screen) -->
+<link rel="manifest" href="/assets/task_hub/manifest.webmanifest">
+<meta name="theme-color" content="#fafaf9">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Task Hub">
+<link rel="apple-touch-icon" href="/assets/task_hub/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/task_hub/icon-192.png">
+
 {{ include_style("task_hub.bundle.css") }}
 <style>
   /* Hide Frappe's default website chrome */

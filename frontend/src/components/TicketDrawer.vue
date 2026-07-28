@@ -5,8 +5,8 @@
       class="fixed inset-0 z-50 bg-ink-900/50 overflow-y-auto"
       @click.self="close"
     >
-      <div class="min-h-full flex items-start justify-center p-4 sm:p-8" @click.self="close">
-        <div class="tmodal-panel w-full max-w-3xl bg-white rounded-2xl shadow-2xl my-4">
+      <div class="min-h-full flex items-start justify-center p-0 sm:p-8" @click.self="close">
+        <div class="tmodal-panel w-full max-w-3xl bg-white rounded-none sm:rounded-2xl shadow-2xl my-0 sm:my-4 min-h-screen sm:min-h-0">
           <!-- header -->
           <div class="px-6 pt-5 pb-4 border-b border-ink-100 flex items-start justify-between gap-3">
             <div v-if="data" class="min-w-0">

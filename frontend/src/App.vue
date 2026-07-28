@@ -57,33 +57,42 @@
       >
         <div class="flex items-center gap-2 md:hidden">
           <img :src="logoSrc" alt="Justyol" class="h-4 w-auto" />
+          <span class="text-[10px] font-bold text-brand-600 tracking-widest uppercase mt-0.5">
+            {{ currentTitle }}
+          </span>
         </div>
-
-        <!-- mobile nav -->
-        <nav class="flex md:hidden items-center gap-1">
-          <router-link
-            v-for="item in nav"
-            :key="item.to"
-            :to="item.to"
-            class="px-2.5 py-1.5 rounded-lg text-xs font-medium"
-            :class="isActive(item.to) ? 'bg-brand-50 text-brand-700' : 'text-ink-500'"
-          >
-            {{ item.label }}
-          </router-link>
-        </nav>
 
         <div class="hidden md:block text-sm font-semibold text-ink-700">
           {{ currentTitle }}
         </div>
 
         <button class="btn-primary" @click="ui.openCreate()">
-          <span class="text-base leading-none">+</span> New Ticket
+          <span class="text-base leading-none">+</span>
+          <span class="hidden sm:inline">New Ticket</span>
+          <span class="sm:hidden">New</span>
         </button>
       </header>
 
-      <main class="flex-1 p-4 sm:p-6">
+      <main class="flex-1 p-4 sm:p-6 pb-24 md:pb-6">
         <router-view />
       </main>
+
+      <!-- mobile bottom tab bar — app-like navigation -->
+      <nav
+        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-ink-200 flex"
+        style="padding-bottom: env(safe-area-inset-bottom)"
+      >
+        <router-link
+          v-for="item in nav"
+          :key="item.to"
+          :to="item.to"
+          class="flex-1 flex flex-col items-center gap-1 pt-2.5 pb-2 min-h-[56px] transition-colors"
+          :class="isActive(item.to) ? 'text-brand-600' : 'text-ink-400'"
+        >
+          <NavIcon :name="item.icon" :size="20" />
+          <span class="text-[10px] font-semibold">{{ item.short || item.label }}</span>
+        </router-link>
+      </nav>
     </div>
 
     <CreateTicketModal />
@@ -115,7 +124,7 @@ const logoSrc = import.meta.env.DEV
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { to: "/board", label: "Board", icon: "board" },
-  { to: "/tickets", label: "All Tickets", icon: "list" },
+  { to: "/tickets", label: "All Tickets", short: "Tickets", icon: "list" },
   { to: "/teams", label: "Teams", icon: "users" },
   { to: "/settings", label: "Settings", icon: "settings" },
 ];

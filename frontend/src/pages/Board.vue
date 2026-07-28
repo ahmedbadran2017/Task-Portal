@@ -26,8 +26,8 @@
       {{ error }}
     </div>
 
-    <!-- board -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+    <!-- board: horizontal swipe on mobile, grid on desktop -->
+    <div class="board-scroll md:grid md:grid-cols-2 xl:grid-cols-4 md:gap-4">
       <div
         v-for="col in BOARD_COLUMNS"
         :key="col"
@@ -74,6 +74,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import TicketCard from "@/components/TicketCard.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
@@ -83,6 +84,7 @@ import {
 
 const ui = useUi();
 const toast = useToast();
+const route = useRoute();
 const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
@@ -157,6 +159,7 @@ async function onDrop(col) {
 
 onMounted(async () => {
   load();
+  if (route.query.new) ui.openCreate();
   try {
     const s = await getSettings();
     const secs = Number(s.auto_refresh_seconds) || 0;

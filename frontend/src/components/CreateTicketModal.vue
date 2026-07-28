@@ -2,10 +2,10 @@
   <transition name="fade">
     <div
       v-if="ui.state.createOpen"
-      class="fixed inset-0 z-50 bg-ink-900/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
+      class="fixed inset-0 z-50 bg-ink-900/40 flex items-start justify-center p-0 sm:p-8 overflow-y-auto"
       @click.self="close"
     >
-      <div class="card w-full max-w-xl p-6 mt-6">
+      <div class="card w-full max-w-xl p-5 sm:p-6 mt-0 sm:mt-6 rounded-none sm:rounded-2xl min-h-screen sm:min-h-0">
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-lg font-semibold text-ink-900">New Ticket</h2>
           <button class="btn-ghost !px-2" @click="close">✕</button>
