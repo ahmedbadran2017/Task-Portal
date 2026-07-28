@@ -39,6 +39,10 @@ export function getSummary() {
   return getMethod(`${M}.dashboard.get_summary`);
 }
 
+export function getTrends(weeks = 8) {
+  return getMethod(`${M}.dashboard.get_trends`, { weeks });
+}
+
 export function listTickets(params = {}) {
   return getMethod(`${M}.tickets.list_tickets`, params);
 }

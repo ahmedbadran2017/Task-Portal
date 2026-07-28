@@ -142,8 +142,18 @@ A drop-in **"Report Problem"** button component for the portals lands in Phase 2
 - **Phase 2.5:** file/image attachments (create modal, drawer, portal widget),
   Task Hub Settings (SLA budgets, defaults, auto-refresh) at `/taskhub/settings`,
   hourly SLA-breach scheduler, clickable dashboard tiles → filtered lists. ✅
-- **Phase 3:** rule-based auto-tickets (SLA breaches, overdue invoices, low stock),
-  email/notification escalation, and a CEO roll-up view.
+- **Phase 3:** ✅
+  - **Auto-tickets** (daily, off by default, settings-gated): overdue Sales
+    Invoices → Accounting, undelivered Sales Orders → Logistics. Deduped per
+    linked record, capped per run.
+  - **Notifications:** email on assignment; SLA warning to the assignee in the
+    final quarter of the budget; breach escalation to managers (once per ticket).
+  - **Weekly digest:** per-portal New/Resolved/Open/Breached table to managers.
+  - **@mentions:** `@email.localpart` in a comment emails that user.
+  - **Trends & roll-up:** created-vs-resolved chart (8 weeks) + portal health
+    table (open, breached, resolved 30d, avg resolution hours) on the dashboard.
+- **Later ideas:** Telegram/WhatsApp notifications, per-department kanban views,
+  recurring tickets, CSV export, public status page per ticket.
 
 > Attachments are stored public (inline previews across portals) — allowed
 > extensions and the 20 MB cap live in `task_hub/api/tickets.py`.

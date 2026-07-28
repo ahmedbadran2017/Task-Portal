@@ -24,8 +24,16 @@ after_migrate = [
 # doc_events wiring is needed here.
 
 # Flag silently-overdue tickets — saves only refresh the breach flag on write.
+# Automation (auto-tickets, SLA notifications, digest) is gated by settings.
 scheduler_events = {
     "hourly": [
         "task_hub.task_hub.doctype.hub_ticket.hub_ticket.refresh_sla_breaches",
+        "task_hub.automation.notify_sla_risks",
+    ],
+    "daily": [
+        "task_hub.automation.run_auto_rules",
+    ],
+    "weekly": [
+        "task_hub.automation.send_weekly_digest",
     ],
 }

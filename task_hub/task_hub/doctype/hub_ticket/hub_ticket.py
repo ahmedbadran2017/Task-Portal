@@ -74,6 +74,7 @@ class HubTicket(Document):
         if (before.assigned_to or "") != (self.assigned_to or ""):
             if self.assigned_to:
                 self._log("Assigned", _("Assigned to {0}").format(self.assigned_to))
+                self._notify_assignee()
             else:
                 self._log("Unassigned", _("Assignment cleared"))
 
@@ -108,6 +109,32 @@ class HubTicket(Document):
             "action": action,
             "detail": detail,
         })
+
+    def _notify_assignee(self):
+        """Email the new assignee, if notifications are on and it isn't a
+        self-assignment."""
+        try:
+            s = frappe.get_cached_doc("Task Hub Settings")
+            if not int(s.notify_on_assignment or 0):
+                return
+        except Exception:
+            pass  # settings not migrated yet — default to notifying
+        if self.assigned_to == frappe.session.user:
+            return
+        try:
+            frappe.sendmail(
+                recipients=[self.assigned_to],
+                subject=_("[Task Hub] {0} assigned to you").format(self.name),
+                message=(
+                    f"<p><b>{self.title}</b> ({self.priority} · "
+                    f"{self.source_portal}) was assigned to you by "
+                    f"{frappe.session.user}.</p>"
+                    f'<p><a href="/taskhub/tickets">Open the Task Hub →</a></p>'
+                ),
+            )
+        except Exception:
+            frappe.log_error(message=frappe.get_traceback(),
+                             title="task_hub: assignment email failed")
 
 
 def refresh_sla_breaches():

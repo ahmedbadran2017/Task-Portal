@@ -14,7 +14,20 @@
   "default_ticket_type",
   "default_priority",
   "col_defaults",
-  "auto_refresh_seconds"
+  "auto_refresh_seconds",
+  "section_automation",
+  "auto_overdue_invoices",
+  "overdue_invoice_days",
+  "col_automation",
+  "auto_stuck_orders",
+  "stuck_order_days",
+  "max_auto_tickets_per_run",
+  "section_notifications",
+  "notify_on_assignment",
+  "notify_sla",
+  "col_notifications",
+  "weekly_digest",
+  "digest_recipients"
  ],
  "fields": [
   {"fieldname": "section_sla", "fieldtype": "Section Break", "label": "SLA Budgets (hours per priority)"},
@@ -28,7 +41,22 @@
   {"fieldname": "default_ticket_type", "fieldtype": "Select", "label": "Default Type", "options": "Task\nProblem\nRequest", "default": "Task"},
   {"fieldname": "default_priority", "fieldtype": "Select", "label": "Default Priority", "options": "Urgent\nHigh\nMedium\nLow", "default": "Medium"},
   {"fieldname": "col_defaults", "fieldtype": "Column Break"},
-  {"fieldname": "auto_refresh_seconds", "fieldtype": "Int", "label": "Hub auto-refresh (seconds, 0 = off)", "default": "60"}
+  {"fieldname": "auto_refresh_seconds", "fieldtype": "Int", "label": "Hub auto-refresh (seconds, 0 = off)", "default": "60"},
+
+  {"fieldname": "section_automation", "fieldtype": "Section Break", "label": "Auto-Tickets (daily rules — off by default)"},
+  {"fieldname": "auto_overdue_invoices", "fieldtype": "Check", "label": "Overdue Sales Invoices → Accounting ticket", "default": "0"},
+  {"fieldname": "overdue_invoice_days", "fieldtype": "Int", "label": "Invoice overdue by (days)", "default": "3"},
+  {"fieldname": "col_automation", "fieldtype": "Column Break"},
+  {"fieldname": "auto_stuck_orders", "fieldtype": "Check", "label": "Stuck Sales Orders → Logistics ticket", "default": "0"},
+  {"fieldname": "stuck_order_days", "fieldtype": "Int", "label": "Order undelivered for (days)", "default": "3"},
+  {"fieldname": "max_auto_tickets_per_run", "fieldtype": "Int", "label": "Max auto-tickets per run", "default": "20"},
+
+  {"fieldname": "section_notifications", "fieldtype": "Section Break", "label": "Notifications"},
+  {"fieldname": "notify_on_assignment", "fieldtype": "Check", "label": "Email assignee on assignment", "default": "1"},
+  {"fieldname": "notify_sla", "fieldtype": "Check", "label": "Email SLA warnings + escalate breaches to managers", "default": "1"},
+  {"fieldname": "col_notifications", "fieldtype": "Column Break"},
+  {"fieldname": "weekly_digest", "fieldtype": "Check", "label": "Send weekly digest", "default": "0"},
+  {"fieldname": "digest_recipients", "fieldtype": "Small Text", "label": "Digest / escalation emails (comma-separated; empty = all Task Hub managers)"}
  ],
  "index_web_pages_for_search": 0,
  "issingle": 1,

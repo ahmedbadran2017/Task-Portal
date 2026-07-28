@@ -62,6 +62,49 @@
       </div>
     </div>
 
+    <!-- trends + roll-up -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-ink-700">Created vs resolved — last 8 weeks</h3>
+      </div>
+      <TrendChart :series="trends.series" />
+    </div>
+
+    <div v-if="trends.health.length" class="card overflow-hidden">
+      <h3 class="text-sm font-semibold text-ink-700 px-5 pt-5 pb-3">Portal health (30 days)</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
+              <th class="px-5 py-2.5 font-semibold">Portal</th>
+              <th class="px-3 py-2.5 font-semibold">Open</th>
+              <th class="px-3 py-2.5 font-semibold">Breached</th>
+              <th class="px-3 py-2.5 font-semibold">Resolved (30d)</th>
+              <th class="px-5 py-2.5 font-semibold">Avg resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in trends.health" :key="row.portal" class="border-t border-ink-100">
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-2 font-medium text-ink-800">
+                  <span class="w-2 h-2 rounded-full" :style="{ background: portalColor(row.portal) }" />
+                  {{ row.portal }}
+                </span>
+              </td>
+              <td class="px-3 py-3 tabular-nums">{{ row.open }}</td>
+              <td class="px-3 py-3 tabular-nums">
+                <span :class="row.breached ? 'text-rose-600 font-bold' : 'text-ink-400'">{{ row.breached }}</span>
+              </td>
+              <td class="px-3 py-3 tabular-nums">{{ row.resolved_30d }}</td>
+              <td class="px-5 py-3 text-ink-600">
+                {{ row.avg_resolution_hours != null ? row.avg_resolution_hours + "h" : "—" }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- status breakdown chips -->
     <div class="card p-5">
       <h3 class="text-sm font-semibold text-ink-700 mb-4">Everything, by status</h3>
@@ -84,9 +127,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, h } from "vue";
 import { useRouter } from "vue-router";
+import TrendChart from "@/components/TrendChart.vue";
 import { useUi } from "@/composables/useUi";
 import {
-  getSummary, getSettings, PRIORITIES, STATUSES, PRIORITY_META, STATUS_META, PORTAL_META,
+  getSummary, getSettings, getTrends, PRIORITIES, STATUSES, PRIORITY_META, STATUS_META, PORTAL_META,
 } from "@/composables/useTickets";
 
 const ui = useUi();
@@ -94,6 +138,7 @@ const router = useRouter();
 const loading = ref(true);
 const error = ref("");
 const summary = ref({ totals: {}, by_portal: [], by_status: [], by_priority: [] });
+const trends = ref({ series: [], health: [] });
 let refreshTimer = null;
 
 const t = computed(() => ({
@@ -128,6 +173,7 @@ async function load() {
   error.value = "";
   try {
     summary.value = await getSummary();
+    trends.value = await getTrends();
   } catch (e) {
     error.value = e.message || "Could not load dashboard";
   } finally {

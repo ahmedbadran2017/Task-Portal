@@ -304,4 +304,45 @@ def add_comment(name, message):
     })
     doc.save(ignore_permissions=True)
     frappe.db.commit()
+    _notify_mentions(doc, message)
     return {"name": doc.name, "count": len(doc.comments)}
+
+
+def _notify_mentions(doc, message):
+    """Email users tagged as @<email-local-part> in a comment.
+
+    '@ahmed.badran' matches the enabled System User whose email starts with
+    'ahmed.badran@'. Ambiguous or unknown tokens are ignored silently.
+    """
+    import re
+
+    tokens = set(re.findall(r"@([A-Za-z0-9._-]+)", message))
+    if not tokens:
+        return
+    users = frappe.get_all(
+        "User",
+        filters={"enabled": 1, "user_type": "System User"},
+        fields=["name"],
+    )
+    by_local = {}
+    for u in users:
+        local = u.name.split("@")[0].lower()
+        by_local.setdefault(local, []).append(u.name)
+
+    for token in tokens:
+        matches = by_local.get(token.lower()) or []
+        if len(matches) != 1 or matches[0] == frappe.session.user:
+            continue
+        try:
+            frappe.sendmail(
+                recipients=matches,
+                subject=_("[Task Hub] You were mentioned on {0}").format(doc.name),
+                message=(
+                    f"<p>{frappe.session.user} mentioned you on "
+                    f"<b>{doc.title}</b>:</p><blockquote>{frappe.utils.escape_html(message)}"
+                    f"</blockquote><p><a href='/taskhub/tickets'>Open the Task Hub →</a></p>"
+                ),
+            )
+        except Exception:
+            frappe.log_error(message=frappe.get_traceback(),
+                             title="task_hub: mention email failed")
