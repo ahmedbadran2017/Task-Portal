@@ -23,16 +23,13 @@ PORTAL_DEPARTMENT = {
     "Other": "General",
 }
 
-# Priority → SLA budget in hours. Urgent must move fast; Low is best-effort.
-SLA_HOURS = {
-    "Urgent": 4,
-    "High": 24,
-    "Medium": 72,
-    "Low": 168,  # one week
-}
-
 # Statuses that mean the ticket is done — freeze the SLA clock here.
 CLOSED_STATES = {"Resolved", "Closed", "Cancelled"}
+
+
+def _sla_hours():
+    from task_hub.task_hub.doctype.task_hub_settings.task_hub_settings import get_sla_hours
+    return get_sla_hours()
 
 
 class HubTicket(Document):
@@ -93,7 +90,7 @@ class HubTicket(Document):
             self.department = PORTAL_DEPARTMENT.get(self.source_portal or "Other", "General")
 
     def _set_sla_deadline(self):
-        hours = SLA_HOURS.get(self.priority or "Medium", 72)
+        hours = _sla_hours().get(self.priority or "Medium", 72)
         base = get_datetime(self.creation) if self.creation else now_datetime()
         self.sla_deadline = add_to_date(base, hours=hours)
         self._refresh_breach_flag()
@@ -111,3 +108,22 @@ class HubTicket(Document):
             "action": action,
             "detail": detail,
         })
+
+
+def refresh_sla_breaches():
+    """Hourly scheduler job: flag open tickets whose SLA deadline has passed.
+
+    Without this, `sla_breached` only updates when a ticket happens to be
+    saved — a ticket nobody touches would never show as breached.
+    """
+    frappe.db.sql(
+        """
+        UPDATE `tabHub Ticket`
+        SET sla_breached = 1
+        WHERE sla_breached = 0
+          AND status IN ('Open', 'In Progress', 'In Review')
+          AND sla_deadline IS NOT NULL
+          AND sla_deadline < NOW()
+        """
+    )
+    frappe.db.commit()

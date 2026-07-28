@@ -22,3 +22,10 @@ after_migrate = [
 # Hub Ticket lifecycle (SLA, activity log, status stamps) lives in the DocType
 # controller class — task_hub/task_hub/doctype/hub_ticket/hub_ticket.py — so no
 # doc_events wiring is needed here.
+
+# Flag silently-overdue tickets — saves only refresh the breach flag on write.
+scheduler_events = {
+    "hourly": [
+        "task_hub.task_hub.doctype.hub_ticket.hub_ticket.refresh_sla_breaches",
+    ],
+}

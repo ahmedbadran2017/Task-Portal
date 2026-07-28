@@ -24,6 +24,17 @@
         <option value="">Any type</option>
         <option v-for="tp in TYPES" :key="tp" :value="tp">{{ tp }}</option>
       </select>
+      <div class="flex items-center gap-1.5">
+        <button
+          v-for="c in quickChips"
+          :key="c.key"
+          class="px-2.5 py-1.5 rounded-full text-xs font-semibold border transition"
+          :class="filters[c.key] ? 'bg-brand-50 border-brand-300 text-brand-700' : 'bg-white border-ink-200 text-ink-500 hover:border-ink-300'"
+          @click="filters[c.key] = filters[c.key] ? 0 : 1; reload()"
+        >
+          {{ c.label }}
+        </button>
+      </div>
       <div class="flex-1" />
       <span class="text-sm text-ink-400">{{ total }} tickets</span>
     </div>
@@ -78,7 +89,16 @@
                   :bg="STATUS_META[tk.status].bg"
                 />
               </td>
-              <td class="px-3 py-3 text-ink-600">{{ shortUser(tk.assigned_to) }}</td>
+              <td class="px-3 py-3">
+                <span v-if="tk.assigned_to" class="inline-flex items-center gap-1.5">
+                  <span
+                    class="w-6 h-6 rounded-full grid place-items-center text-[10px] font-bold text-white"
+                    :style="{ background: avatarColor(tk.assigned_to) }"
+                  >{{ initials(tk.assigned_to) }}</span>
+                  <span class="text-ink-600 text-xs">{{ shortUser(tk.assigned_to) }}</span>
+                </span>
+                <span v-else class="text-xs text-ink-300">—</span>
+              </td>
               <td class="px-3 py-3">
                 <span v-if="tk.sla_breached" class="text-xs font-bold text-rose-600">Breached</span>
                 <span v-else class="text-xs text-ink-500">{{ relTime(tk.sla_deadline) }}</span>
@@ -109,6 +129,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import Pill from "@/components/Pill.vue";
 import { useUi } from "@/composables/useUi";
 import {
@@ -125,13 +146,33 @@ const total = ref(0);
 const start = ref(0);
 const limit = 25;
 
+const route = useRoute();
+
 const filters = reactive({
   search: "",
   status: "",
   source_portal: "",
   priority: "",
   ticket_type: "",
+  breached_only: 0,
+  mine: 0,
+  unassigned: 0,
 });
+
+const quickChips = [
+  { key: "mine", label: "Mine" },
+  { key: "unassigned", label: "Unassigned" },
+  { key: "breached_only", label: "SLA breached" },
+];
+
+// Dashboard tiles deep-link here (?breached=1, ?mine=1, ?unassigned=1, ?status=…)
+function applyRouteQuery() {
+  const q = route.query || {};
+  filters.breached_only = q.breached ? 1 : 0;
+  filters.mine = q.mine ? 1 : 0;
+  filters.unassigned = q.unassigned ? 1 : 0;
+  if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
+}
 
 async function load() {
   loading.value = true;
@@ -174,7 +215,23 @@ function portalColor(p) {
 function shortUser(u) {
   return u ? String(u).split("@")[0] : "—";
 }
+const AVATAR_COLORS = ["#d45d3e", "#7c3aed", "#059669", "#2563eb", "#d97706", "#0891b2", "#9f1239"];
+function avatarColor(u) {
+  let hash = 0;
+  for (const ch of String(u)) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+function initials(u) {
+  return String(u).split("@")[0].slice(0, 2).toUpperCase();
+}
 
-onMounted(load);
+onMounted(() => {
+  applyRouteQuery();
+  load();
+});
 watch(() => ui.state.rev, load);
+watch(() => route.query, () => {
+  applyRouteQuery();
+  reload();
+});
 </script>

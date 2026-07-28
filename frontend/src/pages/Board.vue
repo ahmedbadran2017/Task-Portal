@@ -31,8 +31,11 @@
       <div
         v-for="col in BOARD_COLUMNS"
         :key="col"
-        class="bg-ink-100/60 rounded-xl p-3 flex flex-col min-h-[200px]"
-        @dragover.prevent
+        class="rounded-2xl p-3 flex flex-col min-h-[200px] border-t-[3px] transition-colors"
+        :style="{ borderTopColor: STATUS_META[col].color }"
+        :class="dropTarget === col ? 'bg-brand-50 ring-2 ring-brand-300' : 'bg-ink-100/60'"
+        @dragover.prevent="dropTarget = col"
+        @dragleave="dropTarget === col && (dropTarget = null)"
         @drop="onDrop(col)"
       >
         <div class="flex items-center justify-between px-1 mb-3">
@@ -40,7 +43,10 @@
             <span class="w-2 h-2 rounded-full" :style="{ background: STATUS_META[col].color }" />
             <span class="text-sm font-semibold text-ink-700">{{ col }}</span>
           </div>
-          <span class="text-xs font-bold text-ink-400 bg-white rounded-full px-2 py-0.5">
+          <span
+            class="text-xs font-bold rounded-full px-2 py-0.5"
+            :style="{ background: STATUS_META[col].bg, color: STATUS_META[col].color }"
+          >
             {{ grouped[col].length }}
           </span>
         </div>
@@ -67,12 +73,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import TicketCard from "@/components/TicketCard.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {
-  BOARD_COLUMNS, PORTALS, PRIORITIES, STATUS_META, listTickets, updateStatus,
+  BOARD_COLUMNS, PORTALS, PRIORITIES, STATUS_META, listTickets, updateStatus, getSettings,
 } from "@/composables/useTickets";
 
 const ui = useUi();
@@ -81,6 +87,12 @@ const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
 const dragging = ref(null);
+const dropTarget = ref(null);
+let refreshTimer = null;
+
+// "priority asc" on the server is alphabetical (High < Low < Medium < Urgent),
+// which is meaningless — rank client-side instead.
+const PRIORITY_RANK = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
 
 const filters = reactive({
   source_portal: "",
@@ -93,6 +105,13 @@ const grouped = computed(() => {
   const g = Object.fromEntries(BOARD_COLUMNS.map((c) => [c, []]));
   for (const t of tickets.value) {
     if (g[t.status]) g[t.status].push(t);
+  }
+  for (const c of BOARD_COLUMNS) {
+    g[c].sort(
+      (a, b) =>
+        (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
+        (a.sla_deadline || "z").localeCompare(b.sla_deadline || "z")
+    );
   }
   return g;
 });
@@ -108,7 +127,7 @@ async function load() {
       breached_only: filters.breached_only ? 1 : 0,
       status: undefined,
       limit: 300,
-      order_by: "priority asc",
+      order_by: "modified desc",
     });
     // Only board columns; terminal states (Closed/Cancelled) live in the list view.
     tickets.value = (res.tickets || []).filter((t) => BOARD_COLUMNS.includes(t.status));
@@ -120,6 +139,7 @@ async function load() {
 }
 
 async function onDrop(col) {
+  dropTarget.value = null;
   const t = dragging.value;
   dragging.value = null;
   if (!t || t.status === col) return;
@@ -135,6 +155,14 @@ async function onDrop(col) {
   }
 }
 
-onMounted(load);
+onMounted(async () => {
+  load();
+  try {
+    const s = await getSettings();
+    const secs = Number(s.auto_refresh_seconds) || 0;
+    if (secs > 0) refreshTimer = setInterval(load, secs * 1000);
+  } catch {}
+});
+onUnmounted(() => refreshTimer && clearInterval(refreshTimer));
 watch(() => ui.state.rev, load);
 </script>

@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "creation": "2026-07-28 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_sla",
+  "sla_urgent_hours",
+  "sla_high_hours",
+  "col_sla",
+  "sla_medium_hours",
+  "sla_low_hours",
+  "section_defaults",
+  "default_ticket_type",
+  "default_priority",
+  "col_defaults",
+  "auto_refresh_seconds"
+ ],
+ "fields": [
+  {"fieldname": "section_sla", "fieldtype": "Section Break", "label": "SLA Budgets (hours per priority)"},
+  {"fieldname": "sla_urgent_hours", "fieldtype": "Int", "label": "Urgent (hours)", "default": "4"},
+  {"fieldname": "sla_high_hours", "fieldtype": "Int", "label": "High (hours)", "default": "24"},
+  {"fieldname": "col_sla", "fieldtype": "Column Break"},
+  {"fieldname": "sla_medium_hours", "fieldtype": "Int", "label": "Medium (hours)", "default": "72"},
+  {"fieldname": "sla_low_hours", "fieldtype": "Int", "label": "Low (hours)", "default": "168"},
+
+  {"fieldname": "section_defaults", "fieldtype": "Section Break", "label": "Defaults"},
+  {"fieldname": "default_ticket_type", "fieldtype": "Select", "label": "Default Type", "options": "Task\nProblem\nRequest", "default": "Task"},
+  {"fieldname": "default_priority", "fieldtype": "Select", "label": "Default Priority", "options": "Urgent\nHigh\nMedium\nLow", "default": "Medium"},
+  {"fieldname": "col_defaults", "fieldtype": "Column Break"},
+  {"fieldname": "auto_refresh_seconds", "fieldtype": "Int", "label": "Hub auto-refresh (seconds, 0 = off)", "default": "60"}
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Task Hub Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "Task Hub Admin", "read": 1, "write": 1, "create": 1},
+  {"role": "Task Hub Manager", "read": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

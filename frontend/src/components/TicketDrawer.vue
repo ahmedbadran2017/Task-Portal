@@ -96,6 +96,46 @@
             <div class="text-sm text-ink-700 prose-sm max-w-none" v-html="data.ticket.description" />
           </div>
 
+          <!-- attachments -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="label !mb-0">Attachments</label>
+              <input ref="fileEl" type="file" multiple class="hidden" @change="onUpload" />
+              <button class="btn-ghost !px-2 !py-1 text-xs" :disabled="busy" @click="fileEl?.click()">
+                📎 Add
+              </button>
+            </div>
+            <div v-if="data.attachments?.length" class="grid grid-cols-2 gap-2">
+              <div
+                v-for="a in data.attachments"
+                :key="a.name"
+                class="group relative border border-ink-200 rounded-lg overflow-hidden bg-ink-50"
+              >
+                <a :href="a.file_url" target="_blank" rel="noopener" class="block">
+                  <img
+                    v-if="isImage(a.file_url)"
+                    :src="a.file_url"
+                    :alt="a.file_name"
+                    class="w-full h-24 object-cover"
+                  />
+                  <div v-else class="h-24 grid place-items-center text-2xl">📄</div>
+                  <div class="px-2 py-1.5 bg-white border-t border-ink-100">
+                    <div class="text-[11px] font-medium text-ink-700 truncate">{{ a.file_name }}</div>
+                    <div class="text-[10px] text-ink-400">{{ fmtSize(a.file_size) }}</div>
+                  </div>
+                </a>
+                <button
+                  class="absolute top-1 right-1 w-6 h-6 rounded-full bg-ink-900/60 text-white text-xs opacity-0 group-hover:opacity-100 transition"
+                  title="Remove"
+                  @click.stop="onDeleteAttachment(a)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-xs text-ink-400">No attachments.</p>
+          </div>
+
           <!-- comments -->
           <div>
             <label class="label">Comments</label>
@@ -153,6 +193,7 @@ import { useToast } from "@/composables/useToast";
 import {
   STATUSES, PRIORITIES, getTicket, updateStatus, setPriority,
   assignTicket, addComment, assignableUsers,
+  uploadAttachment, deleteAttachment, isImage, fmtSize,
 } from "@/composables/useTickets";
 import { fmtDate, relTime } from "@/composables/useApi";
 
@@ -169,6 +210,27 @@ const data = ref(null);
 const users = ref([]);
 const comment = ref("");
 const busy = ref(false);
+const fileEl = ref(null);
+
+async function onUpload(e) {
+  const picked = Array.from(e.target.files || []);
+  e.target.value = "";
+  if (!picked.length) return;
+  busy.value = true;
+  try {
+    for (const f of picked) await uploadAttachment(data.value.ticket.name, f);
+    await load(data.value.ticket.name);
+    toast.success(picked.length > 1 ? `${picked.length} files attached` : "File attached");
+  } catch (err) {
+    toast.error(err.message || "Upload failed");
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function onDeleteAttachment(a) {
+  await run(() => deleteAttachment(data.value.ticket.name, a.name), "Attachment removed");
+}
 
 watch(
   () => ui.state.drawerTicket,

@@ -16,14 +16,21 @@
           v-for="item in nav"
           :key="item.to"
           :to="item.to"
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition"
+          class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
           :class="
             isActive(item.to)
               ? 'bg-brand-50 text-brand-700'
-              : 'text-ink-600 hover:bg-ink-50'
+              : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800'
           "
         >
-          <span>{{ item.icon }}</span>
+          <span
+            v-if="isActive(item.to)"
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-brand-500"
+          />
+          <span
+            class="w-7 h-7 grid place-items-center rounded-lg text-[13px]"
+            :class="isActive(item.to) ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-500'"
+          >{{ item.icon }}</span>
           {{ item.label }}
         </router-link>
       </nav>
@@ -108,6 +115,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: "▤" },
   { to: "/board", label: "Board", icon: "▦" },
   { to: "/tickets", label: "All Tickets", icon: "☰" },
+  { to: "/settings", label: "Settings", icon: "⚙" },
 ];
 
 const fullName = (typeof window !== "undefined" && window.full_name) || "User";

@@ -3,12 +3,14 @@ import { createRouter, createWebHistory } from "vue-router";
 import Dashboard from "./pages/Dashboard.vue";
 import Board from "./pages/Board.vue";
 import TicketList from "./pages/TicketList.vue";
+import Settings from "./pages/Settings.vue";
 
 const routes = [
   { path: "/", redirect: "/dashboard" },
   { path: "/dashboard", name: "dashboard", component: Dashboard },
   { path: "/board", name: "board", component: Board },
   { path: "/tickets", name: "tickets", component: TicketList },
+  { path: "/settings", name: "settings", component: Settings },
 ];
 
 const router = createRouter({

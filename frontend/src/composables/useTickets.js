@@ -1,5 +1,5 @@
 // Domain wrappers over the Task Hub API + shared UI constants.
-import { callMethod, getMethod } from "./useApi";
+import { callMethod, getMethod, parseServerMessages } from "./useApi";
 
 const M = "task_hub.api";
 
@@ -67,10 +67,59 @@ export function addComment(name, message) {
   return callMethod(`${M}.tickets.add_comment`, { name, message });
 }
 
+export async function uploadAttachment(name, file) {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const csrf =
+    (typeof window !== "undefined" && window.csrf_token) ||
+    (document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/) || [])[1] ||
+    "";
+  const resp = await fetch(
+    `/api/method/${M}.tickets.upload_attachment?name=${encodeURIComponent(name)}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "X-Frappe-CSRF-Token": decodeURIComponent(csrf) },
+      body: form,
+    }
+  );
+  let j = {};
+  try {
+    j = await resp.json();
+  } catch {}
+  if (!resp.ok || j.exc) {
+    throw new Error(parseServerMessages(j._server_messages) || j.exc || "HTTP " + resp.status);
+  }
+  return j.message;
+}
+
+export function deleteAttachment(name, fileId) {
+  return callMethod(`${M}.tickets.delete_attachment`, { name, file_id: fileId });
+}
+
+export function isImage(fileUrl) {
+  return /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(fileUrl || "");
+}
+
+export function fmtSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(0) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+
 export function assignableUsers(search = "") {
   return getMethod(`${M}.auth.assignable_users`, { search });
 }
 
 export function whoami() {
   return getMethod(`${M}.auth.whoami`);
+}
+
+export function getSettings() {
+  return getMethod(`${M}.settings.get_settings`);
+}
+
+export function updateSettings(payload) {
+  return callMethod(`${M}.settings.update_settings`, payload);
 }

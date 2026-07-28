@@ -10,6 +10,7 @@ import json
 import frappe
 from frappe import _
 from frappe.utils import now_datetime
+from frappe.utils.file_manager import save_file
 
 from task_hub.api.utils import (
     gate_read, can_edit_ticket, normalize_portal,
@@ -51,8 +52,20 @@ def create_ticket(**kwargs):
     if not title:
         frappe.throw(_("A ticket title is required."))
 
-    ticket_type = data.get("ticket_type") if data.get("ticket_type") in VALID_TYPES else "Task"
-    priority = data.get("priority") if data.get("priority") in VALID_PRIORITIES else "Medium"
+    # Fall back to admin-configured defaults, then hard defaults.
+    try:
+        s = frappe.get_cached_doc("Task Hub Settings")
+        default_type = s.default_ticket_type or "Task"
+        default_priority = s.default_priority or "Medium"
+    except Exception:
+        default_type, default_priority = "Task", "Medium"
+
+    ticket_type = data.get("ticket_type") if data.get("ticket_type") in VALID_TYPES else default_type
+    priority = data.get("priority") if data.get("priority") in VALID_PRIORITIES else default_priority
+
+    assigned_to = data.get("assigned_to") or None
+    if assigned_to and not frappe.db.exists("User", assigned_to):
+        assigned_to = None  # silently drop unknown assignees rather than failing the report
 
     doc = frappe.new_doc("Hub Ticket")
     doc.title = title[:180]
@@ -61,7 +74,7 @@ def create_ticket(**kwargs):
     doc.priority = priority
     doc.source_portal = normalize_portal(data.get("source_portal"))
     doc.department = data.get("department") or None
-    doc.assigned_to = data.get("assigned_to") or None
+    doc.assigned_to = assigned_to
     doc.due_date = data.get("due_date") or None
     doc.tags = data.get("tags") or None
     doc.linked_doctype = data.get("linked_doctype") or None
@@ -78,13 +91,15 @@ def create_ticket(**kwargs):
 @frappe.whitelist()
 def list_tickets(status=None, priority=None, source_portal=None,
                  assigned_to=None, reported_by=None, ticket_type=None,
-                 search=None, breached_only=0, mine=0,
+                 search=None, breached_only=0, mine=0, unassigned=0,
                  limit=100, start=0, order_by="modified desc"):
     """Filtered ticket list for the Hub board / list views."""
     gate_read()
     filters = {}
     if status:
         filters["status"] = status
+    if int(unassigned or 0):
+        filters["assigned_to"] = ["in", (None, "")]
     if priority:
         filters["priority"] = priority
     if source_portal:
@@ -123,7 +138,7 @@ def list_tickets(status=None, priority=None, source_portal=None,
 
 @frappe.whitelist()
 def get_ticket(name):
-    """Full ticket incl. comments + activity timeline."""
+    """Full ticket incl. comments, activity timeline, and attachments."""
     gate_read()
     doc = frappe.get_doc("Hub Ticket", name)
     d = doc.as_dict()
@@ -140,7 +155,18 @@ def get_ticket(name):
              "action": a.action, "detail": a.detail}
             for a in doc.activity
         ],
+        "attachments": _attachments(name),
     }
+
+
+def _attachments(name):
+    return frappe.get_all(
+        "File",
+        filters={"attached_to_doctype": "Hub Ticket", "attached_to_name": name},
+        fields=["name", "file_name", "file_url", "file_size", "is_private",
+                "owner", "creation"],
+        order_by="creation asc",
+    )
 
 
 # --------------------------------------------------------------------- mutate
@@ -185,6 +211,83 @@ def set_priority(name, priority):
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"name": doc.name, "priority": doc.priority, "sla_deadline": doc.sla_deadline}
+
+
+ALLOWED_EXTENSIONS = {
+    "png", "jpg", "jpeg", "gif", "webp", "svg", "heic",
+    "pdf", "csv", "xlsx", "xls", "docx", "doc", "txt", "zip",
+    "mp4", "mov", "webm",
+}
+MAX_FILE_MB = 20
+
+
+@frappe.whitelist()
+def upload_attachment(name):
+    """Attach an uploaded file (multipart field `file`) to a Hub Ticket.
+
+    Any hub member may attach — same policy as commenting. Files are stored
+    public so ticket links render inline previews across the portals.
+    """
+    gate_read()
+    doc = frappe.get_doc("Hub Ticket", name)  # 404s on a bad ticket name
+
+    f = frappe.request.files.get("file")
+    if not f or not f.filename:
+        frappe.throw(_("No file was uploaded."))
+
+    ext = (f.filename.rsplit(".", 1)[-1] or "").lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        frappe.throw(_("File type .{0} is not allowed.").format(ext))
+
+    content = f.stream.read()
+    if len(content) > MAX_FILE_MB * 1024 * 1024:
+        frappe.throw(_("File is larger than {0} MB.").format(MAX_FILE_MB))
+
+    file_doc = save_file(f.filename, content, "Hub Ticket", doc.name,
+                         is_private=0)
+
+    doc.append("activity", {
+        "activity_on": now_datetime(),
+        "actor": frappe.session.user,
+        "action": "Attachment added",
+        "detail": f.filename,
+    })
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {
+        "name": file_doc.name,
+        "file_name": file_doc.file_name,
+        "file_url": file_doc.file_url,
+        "file_size": file_doc.file_size,
+    }
+
+
+@frappe.whitelist()
+def delete_attachment(name, file_id):
+    """Remove an attachment — allowed for the uploader or ticket editors."""
+    gate_read()
+    row = frappe.db.get_value(
+        "File", file_id,
+        ["name", "file_name", "attached_to_doctype", "attached_to_name", "owner"],
+        as_dict=True,
+    )
+    if not row or row.attached_to_doctype != "Hub Ticket" or row.attached_to_name != name:
+        frappe.throw(_("Attachment not found on this ticket."))
+    if row.owner != frappe.session.user and not can_edit_ticket(name):
+        frappe.throw(_("You can't remove this attachment."), frappe.PermissionError)
+
+    frappe.delete_doc("File", row.name, ignore_permissions=True)
+
+    doc = frappe.get_doc("Hub Ticket", name)
+    doc.append("activity", {
+        "activity_on": now_datetime(),
+        "actor": frappe.session.user,
+        "action": "Attachment removed",
+        "detail": row.file_name,
+    })
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"deleted": row.name}
 
 
 @frappe.whitelist()

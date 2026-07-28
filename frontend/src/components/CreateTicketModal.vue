@@ -71,6 +71,31 @@
             />
           </div>
 
+          <div>
+            <label class="label">Attachments</label>
+            <input
+              ref="fileEl"
+              type="file"
+              multiple
+              accept="image/*,.pdf,.csv,.xlsx,.xls,.docx,.doc,.txt,.zip,.mp4,.mov,.webm"
+              class="hidden"
+              @change="onPickFiles"
+            />
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="btn-outline" type="button" @click="fileEl?.click()">
+                📎 Add files
+              </button>
+              <span
+                v-for="(f, i) in files"
+                :key="i"
+                class="inline-flex items-center gap-1.5 bg-ink-50 border border-ink-200 rounded-lg px-2.5 py-1 text-xs text-ink-700"
+              >
+                {{ f.name }}
+                <button class="text-ink-400 hover:text-rose-600" type="button" @click="files.splice(i, 1)">✕</button>
+              </span>
+            </div>
+          </div>
+
           <div v-if="form.linked_label" class="text-xs text-ink-500 bg-ink-50 rounded-lg px-3 py-2">
             🔗 Linked to <b>{{ form.linked_label }}</b>
           </div>
@@ -92,7 +117,7 @@ import { reactive, ref, watch, nextTick } from "vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {
-  TYPES, PRIORITIES, PORTALS, createTicket, assignableUsers,
+  TYPES, PRIORITIES, PORTALS, createTicket, assignableUsers, uploadAttachment,
 } from "@/composables/useTickets";
 
 const ui = useUi();
@@ -100,6 +125,13 @@ const toast = useToast();
 const saving = ref(false);
 const users = ref([]);
 const titleEl = ref(null);
+const fileEl = ref(null);
+const files = ref([]);
+
+function onPickFiles(e) {
+  files.value.push(...Array.from(e.target.files || []));
+  e.target.value = "";
+}
 
 const blank = () => ({
   title: "",
@@ -122,6 +154,7 @@ watch(
   async (open) => {
     if (open) {
       Object.assign(form, blank(), ui.state.createPreset || {});
+      files.value = [];
       if (!users.value.length) {
         try {
           users.value = await assignableUsers("");
@@ -142,7 +175,17 @@ async function submit() {
   saving.value = true;
   try {
     const res = await createTicket({ ...form });
-    toast.success(`Ticket ${res.name} created`);
+    let failed = 0;
+    for (const f of files.value) {
+      try {
+        await uploadAttachment(res.name, f);
+      } catch {
+        failed++;
+      }
+    }
+    files.value = [];
+    if (failed) toast.error(`Ticket ${res.name} created, but ${failed} file(s) failed to upload`);
+    else toast.success(`Ticket ${res.name} created`);
     ui.bump();
     close();
   } catch (e) {

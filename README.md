@@ -137,7 +137,13 @@ A drop-in **"Report Problem"** button component for the portals lands in Phase 2
 
 - **Phase 1 (this repo):** app + `Hub Ticket` model + API + Hub SPA (dashboard,
   Kanban board, list, ticket drawer, SLA, comments, activity). ✅
-- **Phase 2:** shared "Report Problem / New Task" button embedded in each portal,
-  auto-linking to the record in view.
+- **Phase 2:** "⚑ Report" widget embedded in each portal, auto-linking to the
+  record in view. ✅
+- **Phase 2.5:** file/image attachments (create modal, drawer, portal widget),
+  Task Hub Settings (SLA budgets, defaults, auto-refresh) at `/taskhub/settings`,
+  hourly SLA-breach scheduler, clickable dashboard tiles → filtered lists. ✅
 - **Phase 3:** rule-based auto-tickets (SLA breaches, overdue invoices, low stock),
   email/notification escalation, and a CEO roll-up view.
+
+> Attachments are stored public (inline previews across portals) — allowed
+> extensions and the 20 MB cap live in `task_hub/api/tickets.py`.
