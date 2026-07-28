@@ -3,7 +3,7 @@ import { callMethod, getMethod, parseServerMessages } from "./useApi";
 
 const M = "task_hub.api";
 
-export const PORTALS = ["Supplier", "Accounting", "Logistics", "Purchasing", "Other"];
+export const PORTALS = ["Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent", "Other"];
 export const TYPES = ["Task", "Problem", "Request"];
 export const PRIORITIES = ["Urgent", "High", "Medium", "Low"];
 export const STATUSES = ["Open", "In Progress", "In Review", "Resolved", "Closed", "Cancelled"];
@@ -32,6 +32,7 @@ export const PORTAL_META = {
   Accounting: { color: "#059669", label: "Accounting" },
   Logistics: { color: "#2563eb", label: "Logistics" },
   Purchasing: { color: "#d97706", label: "Purchasing" },
+  JoyAgent: { color: "#0d9488", label: "JoyAgent" },
   Other: { color: "#64748b", label: "Other" },
 };
 

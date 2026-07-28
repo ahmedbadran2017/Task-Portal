@@ -20,6 +20,7 @@ PORTAL_DEPARTMENT = {
     "Accounting": "Finance & Accounting",
     "Logistics": "Logistics & Fulfilment",
     "Purchasing": "Procurement",
+    "JoyAgent": "JoyAgent — WhatsApp Support",
     "Other": "General",
 }
 

@@ -18,7 +18,7 @@ MANAGER_ROLES = {
     "Purchase Manager", "Accounts Manager", "Logistics Manager", "Stock Manager",
 }
 
-VALID_PORTALS = {"Supplier", "Accounting", "Logistics", "Purchasing", "Other"}
+VALID_PORTALS = {"Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent", "Other"}
 VALID_TYPES = {"Task", "Problem", "Request"}
 VALID_PRIORITIES = {"Urgent", "High", "Medium", "Low"}
 VALID_STATUSES = {"Open", "In Progress", "In Review", "Resolved", "Closed", "Cancelled"}

@@ -89,7 +89,7 @@ def get_trends(weeks=8):
     # Per-portal health, last 30 days for the resolution metrics.
     month_ago = add_days(nowdate(), -30)
     health = []
-    for p in ("Supplier", "Accounting", "Logistics", "Purchasing", "Other"):
+    for p in ("Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent", "Other"):
         open_now = frappe.db.count("Hub Ticket", {
             "source_portal": p, "status": ["in", OPEN_STATES]})
         breached = frappe.db.count("Hub Ticket", {
