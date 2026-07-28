@@ -10,8 +10,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #f6f7f9;
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #f5f5f4; /* stone-100 — house surface tone */
+  font-family: "Inter", "Noto Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -21,11 +21,11 @@ body {
   height: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: #d5d9e2;
+  background: #d6d3d1;
   border-radius: 8px;
 }
 .scroll-thin::-webkit-scrollbar-thumb:hover {
-  background: #b0b8c9;
+  background: #a8a29e;
 }
 
 @layer components {

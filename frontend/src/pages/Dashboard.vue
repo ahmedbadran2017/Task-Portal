@@ -6,7 +6,7 @@
 
     <!-- KPI row -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <StatTile label="Open" :value="t.open" tone="#1f47e6" hint="tickets in progress" />
+      <StatTile label="Open" :value="t.open" tone="#3b82f6" hint="tickets in progress" />
       <StatTile label="SLA Breached" :value="t.breached" tone="#e11d48" hint="past deadline" />
       <StatTile label="My Queue" :value="t.mine_open" tone="#7c3aed" hint="assigned to me" />
       <StatTile label="Unassigned" :value="t.unassigned" tone="#d97706" hint="need an owner" />

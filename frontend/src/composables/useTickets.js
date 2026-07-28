@@ -19,7 +19,7 @@ export const PRIORITY_META = {
 };
 
 export const STATUS_META = {
-  Open: { color: "#1f47e6", bg: "#eef4ff", label: "Open" },
+  Open: { color: "#3b82f6", bg: "#eff6ff", label: "Open" },
   "In Progress": { color: "#a16207", bg: "#fefce8", label: "In Progress" },
   "In Review": { color: "#7c3aed", bg: "#f5f3ff", label: "In Review" },
   Resolved: { color: "#059669", bg: "#ecfdf5", label: "Resolved" },

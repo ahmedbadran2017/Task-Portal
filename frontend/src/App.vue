@@ -4,15 +4,10 @@
     <aside
       class="hidden md:flex flex-col w-60 shrink-0 bg-white border-r border-ink-200 h-screen sticky top-0"
     >
-      <div class="px-5 py-5 flex items-center gap-2.5 border-b border-ink-100">
-        <div
-          class="w-8 h-8 rounded-lg bg-brand-500 text-white grid place-items-center font-bold"
-        >
-          T
-        </div>
-        <div>
-          <div class="text-sm font-bold leading-none">Task Hub</div>
-          <div class="text-[11px] text-ink-400 mt-0.5">Justyol</div>
+      <div class="px-5 py-5 border-b border-ink-100">
+        <img :src="logoSrc" alt="Justyol" class="h-5 w-auto" />
+        <div class="text-[11px] font-bold text-brand-600 mt-1.5 tracking-widest uppercase">
+          Task Hub
         </div>
       </div>
 
@@ -54,10 +49,7 @@
         class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-ink-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-3"
       >
         <div class="flex items-center gap-2 md:hidden">
-          <div class="w-7 h-7 rounded-md bg-brand-500 text-white grid place-items-center font-bold text-sm">
-            T
-          </div>
-          <span class="font-bold text-sm">Task Hub</span>
+          <img :src="logoSrc" alt="Justyol" class="h-4 w-auto" />
         </div>
 
         <!-- mobile nav -->
@@ -104,6 +96,13 @@ import { COMPANY } from "@/composables/useApi";
 
 const ui = useUi();
 const route = useRoute();
+
+// Served by Frappe from the app's public/ dir in production; the dev server
+// serves the copy in frontend/public/ instead (bound, not static-imported, so
+// vite's single-bundle assetFileNames pattern never tries to emit it).
+const logoSrc = import.meta.env.DEV
+  ? "/justyol-logo.png"
+  : "/assets/task_hub/justyol-logo.png";
 
 const nav = [
   { to: "/dashboard", label: "Dashboard", icon: "▤" },
