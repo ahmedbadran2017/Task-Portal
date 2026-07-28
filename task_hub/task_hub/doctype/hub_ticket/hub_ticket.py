@@ -21,6 +21,8 @@ PORTAL_DEPARTMENT = {
     "Logistics": "Logistics & Fulfilment",
     "Purchasing": "Procurement",
     "JoyAgent": "JoyAgent — WhatsApp Support",
+    "Website": "Justyol Website",
+    "Mobile App": "Justyol Mobile App",
     "Other": "General",
 }
 

@@ -48,7 +48,7 @@
   {"fieldname": "status", "fieldtype": "Select", "label": "Status", "options": "Open\nIn Progress\nIn Review\nResolved\nClosed\nCancelled", "default": "Open", "in_list_view": 1, "in_standard_filter": 1},
 
   {"fieldname": "col_basic", "fieldtype": "Column Break"},
-  {"fieldname": "source_portal", "fieldtype": "Select", "label": "Source Portal", "options": "Supplier\nAccounting\nLogistics\nPurchasing\nJoyAgent\nOther", "default": "Other", "in_list_view": 1, "in_standard_filter": 1, "description": "Which portal the ticket came from."},
+  {"fieldname": "source_portal", "fieldtype": "Select", "label": "Source Portal", "options": "Supplier\nAccounting\nLogistics\nPurchasing\nJoyAgent\nWebsite\nMobile App\nOther", "default": "Other", "in_list_view": 1, "in_standard_filter": 1, "description": "Which portal the ticket came from."},
   {"fieldname": "department", "fieldtype": "Data", "label": "Department", "in_standard_filter": 1, "description": "Auto-derived from the source portal; can be overridden."},
   {"fieldname": "tags", "fieldtype": "Data", "label": "Tags", "description": "Free-form comma-separated tags."},
 

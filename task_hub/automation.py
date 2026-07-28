@@ -243,7 +243,8 @@ def send_weekly_digest():
     def count(filters):
         return frappe.db.count("Hub Ticket", filters=filters)
 
-    portals = ["Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent", "Other"]
+    portals = ["Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent",
+               "Website", "Mobile App", "Other"]
     rows = ""
     for p in portals:
         opened = count({"source_portal": p, "creation": [">=", week_ago]})

@@ -28,9 +28,9 @@
             class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-brand-500"
           />
           <span
-            class="w-7 h-7 grid place-items-center rounded-lg text-[13px]"
+            class="w-7 h-7 grid place-items-center rounded-lg"
             :class="isActive(item.to) ? 'bg-brand-100 text-brand-700' : 'bg-ink-100 text-ink-500'"
-          >{{ item.icon }}</span>
+          ><NavIcon :name="item.icon" :size="15" /></span>
           {{ item.label }}
         </router-link>
       </nav>
@@ -98,6 +98,7 @@ import { useRoute } from "vue-router";
 import CreateTicketModal from "@/components/CreateTicketModal.vue";
 import TicketDrawer from "@/components/TicketDrawer.vue";
 import Toaster from "@/components/Toaster.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { COMPANY } from "@/composables/useApi";
 
