@@ -50,6 +50,18 @@
           </select>
         </div>
         <div class="col-span-2">
+          <label class="label">Who can be assigned tickets</label>
+          <select v-model="form.assignee_scope" class="input" :disabled="!canEdit">
+            <option>Employees only</option>
+            <option>Task Hub members</option>
+            <option>All system users</option>
+          </select>
+          <p class="text-[11px] text-ink-400 mt-1.5">
+            "Employees only" keeps supplier/customer logins and test accounts out
+            of the assignee picker.
+          </p>
+        </div>
+        <div class="col-span-2">
           <label class="label">Auto-refresh (seconds, 0 = off)</label>
           <input
             v-model.number="form.auto_refresh_seconds"
@@ -167,6 +179,7 @@ const form = reactive({
   notify_sla: 1,
   weekly_digest: 0,
   digest_recipients: "",
+  assignee_scope: "Employees only",
 });
 
 // Minimal styled switch — checkbox semantics, house colors.

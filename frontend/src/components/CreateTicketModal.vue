@@ -53,12 +53,7 @@
 
           <div>
             <label class="label">Assign To</label>
-            <select v-model="form.assigned_to" class="input">
-              <option value="">— Unassigned —</option>
-              <option v-for="u in users" :key="u.name" :value="u.name">
-                {{ u.full_name || u.name }}
-              </option>
-            </select>
+            <UserPicker v-model="form.assigned_to" :users="users" />
           </div>
 
           <div>
@@ -114,6 +109,7 @@
 
 <script setup>
 import { reactive, ref, watch, nextTick } from "vue";
+import UserPicker from "@/components/UserPicker.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {

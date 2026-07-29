@@ -54,7 +54,8 @@ def _sendmail(recipients, subject, message):
 
 
 def _ticket_link(name):
-    return f'<a href="/taskhub/tickets">{name}</a>'
+    from task_hub.notify import deep_link
+    return f'<a href="{deep_link(name)}">{name}</a>'
 
 
 # ════════════════════════════════════════════════════════════ auto-tickets
@@ -195,11 +196,13 @@ def notify_sla_risks():
         if total <= 0 or left <= 0 or left > total * 0.25:
             continue
         hours_left = max(1, int(left // 3600))
-        _sendmail(
-            [t.assigned_to],
-            f"[Task Hub] {t.name} nears its SLA ({hours_left}h left)",
-            f"<p><b>{t.title}</b> ({t.priority}) breaches its SLA in about "
-            f"<b>{hours_left}h</b>. {_ticket_link(t.name)}</p>",
+        from task_hub.notify import push
+        push(
+            t.assigned_to, t.name, "sla_warning",
+            f"SLA warning: ~{hours_left}h left on {t.name} — {t.title}",
+            email_subject=f"[Task Hub] {t.name} nears its SLA ({hours_left}h left)",
+            email_html=(f"<p><b>{t.title}</b> ({t.priority}) breaches its SLA "
+                        f"in about <b>{hours_left}h</b>.</p>"),
         )
         frappe.db.set_value("Hub Ticket", t.name, "sla_warning_sent", 1,
                             update_modified=False)
@@ -215,6 +218,11 @@ def notify_sla_risks():
         fields=["name", "title", "priority", "source_portal", "assigned_to"],
     )
     if breached:
+        from task_hub.notify import push
+        for t in breached:
+            if t.assigned_to:
+                push(t.assigned_to, t.name, "sla_breach",
+                     f"SLA breached: {t.name} — {t.title}")
         managers = _manager_emails(s)
         items = "".join(
             f"<li><b>{t.name}</b> · {t.title} ({t.source_portal}, {t.priority}, "

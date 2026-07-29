@@ -56,6 +56,12 @@ class HubTicket(Document):
                 self.ticket_type or "Task", self.priority),
         })
 
+    def after_insert(self):
+        # A ticket born with an assignee must notify them too — before_save
+        # only catches later re-assignments.
+        if self.assigned_to:
+            self._notify_assignee()
+
     # -------------------------------------------------------------- update
     def before_save(self):
         if self.is_new():
@@ -71,9 +77,14 @@ class HubTicket(Document):
             self._log("Status changed", _("{0} → {1}").format(before.status, self.status))
             if self.status in CLOSED_STATES and not self.resolved_on:
                 self.resolved_on = now_datetime()
+                self._notify_resolved()
             if self.status not in CLOSED_STATES:
-                # Re-opened — clear the resolution stamp.
+                # Re-opened — clear the resolution stamp AND the notification
+                # bookkeeping, so a revived ticket can warn/escalate again.
                 self.resolved_on = None
+                if before.status in CLOSED_STATES:
+                    self.sla_warning_sent = 0
+                    self.sla_breach_notified = 0
 
         # Assignment transitions
         if (before.assigned_to or "") != (self.assigned_to or ""):
@@ -86,6 +97,8 @@ class HubTicket(Document):
         # Priority changes re-price the SLA only while the ticket is still open.
         if before.priority != self.priority and self.status not in CLOSED_STATES:
             self._set_sla_deadline()
+            # Deadline moved — allow a fresh warning for the new window.
+            self.sla_warning_sent = 0
             self._log("Priority changed", _("{0} → {1}").format(before.priority, self.priority))
 
         self._refresh_breach_flag()
@@ -126,30 +139,43 @@ class HubTicket(Document):
         })
 
     def _notify_assignee(self):
-        """Email the new assignee, if notifications are on and it isn't a
+        """In-app always; email if the assignment toggle is on. Skips
         self-assignment."""
-        try:
-            s = frappe.get_cached_doc("Task Hub Settings")
-            if not int(s.notify_on_assignment or 0):
-                return
-        except Exception:
-            pass  # settings not migrated yet — default to notifying
+        from task_hub.notify import push
+
         if self.assigned_to == frappe.session.user:
             return
+        email_on = True
         try:
-            frappe.sendmail(
-                recipients=[self.assigned_to],
-                subject=_("[Task Hub] {0} assigned to you").format(self.name),
-                message=(
-                    f"<p><b>{self.title}</b> ({self.priority} · "
-                    f"{self.source_portal}) was assigned to you by "
-                    f"{frappe.session.user}.</p>"
-                    f'<p><a href="/taskhub/tickets">Open the Task Hub →</a></p>'
-                ),
-            )
+            s = frappe.get_cached_doc("Task Hub Settings")
+            email_on = bool(int(s.notify_on_assignment or 0))
         except Exception:
-            frappe.log_error(message=frappe.get_traceback(),
-                             title="task_hub: assignment email failed")
+            pass  # settings not migrated yet — default to emailing
+        push(
+            self.assigned_to, self.name, "assigned",
+            _("{0} assigned you: {1}").format(
+                frappe.utils.get_fullname(frappe.session.user), self.title),
+            email_subject=(_("[Task Hub] {0} assigned to you").format(self.name)
+                           if email_on else None),
+            email_html=(f"<p><b>{self.title}</b> ({self.priority} · "
+                        f"{self.source_portal}) was assigned to you by "
+                        f"{frappe.utils.get_fullname(frappe.session.user)}.</p>"),
+        )
+
+    def _notify_resolved(self):
+        """Tell the reporter their ticket was resolved (unless they did it)."""
+        from task_hub.notify import push
+
+        if not self.reported_by or self.reported_by == frappe.session.user:
+            return
+        push(
+            self.reported_by, self.name, "resolved",
+            _("Your ticket was resolved: {0}").format(self.title),
+            email_subject=_("[Task Hub] {0} resolved").format(self.name),
+            email_html=(f"<p>Your ticket <b>{self.title}</b> was marked "
+                        f"<b>{self.status}</b> by "
+                        f"{frappe.utils.get_fullname(frappe.session.user)}.</p>"),
+        )
 
 
 def resolve_user_department(user):

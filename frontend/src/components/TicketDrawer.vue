@@ -105,16 +105,33 @@
                   </div>
                   <p v-if="!data.comments.length" class="text-xs text-ink-400">No comments yet.</p>
                 </div>
-                <div class="flex gap-2 mt-3">
-                  <input
-                    v-model="comment"
-                    class="input"
-                    placeholder="Write a comment… (@name mentions someone)"
-                    @keydown.enter="postComment"
-                  />
-                  <button class="btn-primary" :disabled="busy || !comment.trim()" @click="postComment">
-                    Send
-                  </button>
+                <div class="relative mt-3">
+                  <!-- mention autocomplete -->
+                  <div
+                    v-if="mentionMatches.length"
+                    class="absolute bottom-full mb-1 left-0 w-64 bg-white border border-ink-200 rounded-xl shadow-lg z-20 overflow-hidden"
+                  >
+                    <button
+                      v-for="u in mentionMatches"
+                      :key="u.name"
+                      class="w-full text-left px-3 py-2 text-sm hover:bg-brand-50/60 flex items-center gap-2"
+                      @click="insertMention(u)"
+                    >
+                      <span class="font-semibold text-ink-800">{{ u.full_name || u.name }}</span>
+                      <span class="text-[10px] text-ink-400 truncate">@{{ u.name.split("@")[0] }}</span>
+                    </button>
+                  </div>
+                  <div class="flex gap-2">
+                    <input
+                      v-model="comment"
+                      class="input"
+                      placeholder="Write a comment… type @ to mention"
+                      @keydown.enter="mentionMatches.length ? insertMention(mentionMatches[0]) : postComment()"
+                    />
+                    <button class="btn-primary" :disabled="busy || !comment.trim()" @click="postComment">
+                      Send
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -159,17 +176,12 @@
               </div>
               <div>
                 <label class="label">Assigned To</label>
-                <select
-                  :value="data.ticket.assigned_to || ''"
-                  class="input"
+                <UserPicker
+                  :model-value="data.ticket.assigned_to || ''"
+                  :users="users"
                   :disabled="busy"
-                  @change="onAssign($event.target.value)"
-                >
-                  <option value="">— Unassigned —</option>
-                  <option v-for="u in users" :key="u.name" :value="u.name">
-                    {{ u.full_name || u.name }}
-                  </option>
-                </select>
+                  @update:model-value="onAssign"
+                />
               </div>
 
               <div v-if="data.ticket.linked_label" class="pt-1">
@@ -205,6 +217,7 @@
 <script setup>
 import { ref, computed, watch, h } from "vue";
 import Pill from "./Pill.vue";
+import UserPicker from "./UserPicker.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {
@@ -228,6 +241,24 @@ const users = ref([]);
 const comment = ref("");
 const busy = ref(false);
 const fileEl = ref(null);
+
+// "@..." at the end of the draft → suggest matching team members.
+const mentionMatches = computed(() => {
+  const m = comment.value.match(/@([A-Za-z0-9._-]*)$/);
+  if (!m) return [];
+  const q = m[1].toLowerCase();
+  return users.value
+    .filter(
+      (u) =>
+        (u.full_name || "").toLowerCase().includes(q) ||
+        u.name.toLowerCase().startsWith(q)
+    )
+    .slice(0, 5);
+});
+
+function insertMention(u) {
+  comment.value = comment.value.replace(/@([A-Za-z0-9._-]*)$/, "@" + u.name.split("@")[0] + " ");
+}
 
 const portalMeta = computed(
   () => PORTAL_META[data.value?.ticket?.source_portal] || PORTAL_META.Other

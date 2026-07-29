@@ -1,0 +1,35 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-07-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "for_user",
+  "ticket",
+  "ntype",
+  "message",
+  "seen"
+ ],
+ "fields": [
+  {"fieldname": "for_user", "fieldtype": "Link", "options": "User", "label": "For User", "reqd": 1, "in_standard_filter": 1},
+  {"fieldname": "ticket", "fieldtype": "Link", "options": "Hub Ticket", "label": "Ticket", "in_standard_filter": 1},
+  {"fieldname": "ntype", "fieldtype": "Data", "label": "Type", "description": "assigned | comment | mention | resolved | sla_warning | sla_breach"},
+  {"fieldname": "message", "fieldtype": "Small Text", "label": "Message"},
+  {"fieldname": "seen", "fieldtype": "Check", "label": "Seen", "default": "0", "in_standard_filter": 1}
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-07-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Notification",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

@@ -174,6 +174,8 @@ function applyRouteQuery() {
   filters.unassigned = q.unassigned ? 1 : 0;
   if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
   filters.department = typeof q.department === "string" ? q.department : "";
+  // Email deep links: /taskhub/tickets?open=TKT-… pops the ticket card open.
+  if (typeof q.open === "string" && q.open) ui.openTicket(q.open);
 }
 
 async function load() {

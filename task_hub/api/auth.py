@@ -25,11 +25,40 @@ def whoami():
 
 
 @frappe.whitelist()
-def assignable_users(search=None, limit=20):
-    """Users a ticket can be assigned to — enabled System Users only.
-    Feeds the assignee picker in the SPA."""
+def assignable_users(search=None, limit=200):
+    """Users a ticket can be assigned to, scoped by Task Hub Settings:
+
+    - "Employees only" (default): users linked to an active Employee — keeps
+      supplier/customer logins and test accounts out of the picker.
+    - "Task Hub members": anyone holding a Task Hub role.
+    - "All system users": every enabled System User.
+    """
     gate_read()
+    scope = "Employees only"
+    try:
+        scope = frappe.get_cached_doc("Task Hub Settings").assignee_scope or scope
+    except Exception:
+        pass
+
     filters = {"enabled": 1, "user_type": "System User"}
+    if scope == "Employees only":
+        ids = [r.user_id for r in frappe.get_all(
+            "Employee", filters={"status": "Active", "user_id": ["is", "set"]},
+            fields=["user_id"])]
+        if not ids:
+            return []
+        filters["name"] = ["in", ids]
+    elif scope == "Task Hub members":
+        ids = [r.parent for r in frappe.get_all(
+            "Has Role",
+            filters={"role": ["in", ("Task Hub Admin", "Task Hub Manager",
+                                     "Task Hub Agent", "Task Hub User")],
+                     "parenttype": "User"},
+            fields=["parent"])]
+        if not ids:
+            return []
+        filters["name"] = ["in", list(set(ids))]
+
     or_filters = None
     if search:
         like = f"%{search}%"

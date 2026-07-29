@@ -66,11 +66,14 @@
           {{ currentTitle }}
         </div>
 
-        <button class="btn-primary" @click="ui.openCreate()">
+        <div class="flex items-center gap-1.5">
+          <NotificationBell />
+          <button class="btn-primary" @click="ui.openCreate()">
           <span class="text-base leading-none">+</span>
           <span class="hidden sm:inline">New Ticket</span>
           <span class="sm:hidden">New</span>
-        </button>
+          </button>
+        </div>
       </header>
 
       <main class="flex-1 p-4 sm:p-6 pb-24 md:pb-6">
@@ -108,6 +111,7 @@ import CreateTicketModal from "@/components/CreateTicketModal.vue";
 import TicketDrawer from "@/components/TicketDrawer.vue";
 import Toaster from "@/components/Toaster.vue";
 import NavIcon from "@/components/NavIcon.vue";
+import NotificationBell from "@/components/NotificationBell.vue";
 import { useUi } from "@/composables/useUi";
 import { COMPANY } from "@/composables/useApi";
 

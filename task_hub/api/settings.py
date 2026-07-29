@@ -10,6 +10,7 @@ FIELDS = [
     "auto_overdue_invoices", "overdue_invoice_days",
     "auto_stuck_orders", "stuck_order_days", "max_auto_tickets_per_run",
     "notify_on_assignment", "notify_sla", "weekly_digest", "digest_recipients",
+    "assignee_scope",
 ]
 
 # Check fields arrive as 0/1 and may legitimately be 0 — updated even when falsy.

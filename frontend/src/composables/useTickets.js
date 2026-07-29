@@ -119,6 +119,23 @@ export function assignableUsers(search = "") {
   return getMethod(`${M}.auth.assignable_users`, { search });
 }
 
+export function myNotifications(limit = 25) {
+  return getMethod(`${M}.notifications.my_notifications`, { limit });
+}
+
+export function markSeen(name = "") {
+  return callMethod(`${M}.notifications.mark_seen`, name ? { name } : {});
+}
+
+export const NOTIF_META = {
+  assigned: { icon: "👤", color: "#d45d3e" },
+  comment: { icon: "💬", color: "#2563eb" },
+  mention: { icon: "@", color: "#7c3aed" },
+  resolved: { icon: "✓", color: "#059669" },
+  sla_warning: { icon: "⏳", color: "#d97706" },
+  sla_breach: { icon: "⏰", color: "#e11d48" },
+};
+
 export function whoami() {
   return getMethod(`${M}.auth.whoami`);
 }

@@ -306,45 +306,55 @@ def add_comment(name, message):
     })
     doc.save(ignore_permissions=True)
     frappe.db.commit()
-    _notify_mentions(doc, message)
+    _notify_comment(doc, message)
     return {"name": doc.name, "count": len(doc.comments)}
 
 
-def _notify_mentions(doc, message):
-    """Email users tagged as @<email-local-part> in a comment.
-
-    '@ahmed.badran' matches the enabled System User whose email starts with
-    'ahmed.badran@'. Ambiguous or unknown tokens are ignored silently.
-    """
+def _resolve_mentions(message):
+    """@<email-local-part> tokens → matching enabled System Users.
+    Ambiguous or unknown tokens are ignored."""
     import re
 
     tokens = set(re.findall(r"@([A-Za-z0-9._-]+)", message))
     if not tokens:
-        return
-    users = frappe.get_all(
-        "User",
-        filters={"enabled": 1, "user_type": "System User"},
-        fields=["name"],
-    )
+        return set()
     by_local = {}
-    for u in users:
-        local = u.name.split("@")[0].lower()
-        by_local.setdefault(local, []).append(u.name)
-
+    for u in frappe.get_all("User", filters={"enabled": 1, "user_type": "System User"},
+                            fields=["name"]):
+        by_local.setdefault(u.name.split("@")[0].lower(), []).append(u.name)
+    found = set()
     for token in tokens:
         matches = by_local.get(token.lower()) or []
-        if len(matches) != 1 or matches[0] == frappe.session.user:
-            continue
-        try:
-            frappe.sendmail(
-                recipients=matches,
-                subject=_("[Task Hub] You were mentioned on {0}").format(doc.name),
-                message=(
-                    f"<p>{frappe.session.user} mentioned you on "
-                    f"<b>{doc.title}</b>:</p><blockquote>{frappe.utils.escape_html(message)}"
-                    f"</blockquote><p><a href='/taskhub/tickets'>Open the Task Hub →</a></p>"
-                ),
-            )
-        except Exception:
-            frappe.log_error(message=frappe.get_traceback(),
-                             title="task_hub: mention email failed")
+        if len(matches) == 1:
+            found.add(matches[0])
+    return found
+
+
+def _notify_comment(doc, message):
+    """Mentions get a mention notice; the other participants (assignee +
+    reporter) get a comment notice. The commenter is never notified."""
+    from task_hub.notify import push
+
+    author = frappe.session.user
+    author_name = frappe.utils.get_fullname(author)
+    quoted = frappe.utils.escape_html(message)
+
+    mentioned = _resolve_mentions(message) - {author}
+    for user in mentioned:
+        push(
+            user, doc.name, "mention",
+            _("{0} mentioned you: {1}").format(author_name, message[:120]),
+            email_subject=_("[Task Hub] You were mentioned on {0}").format(doc.name),
+            email_html=(f"<p>{author_name} mentioned you on <b>{doc.title}</b>:</p>"
+                        f"<blockquote>{quoted}</blockquote>"),
+        )
+
+    participants = {doc.assigned_to, doc.reported_by} - {author, None, ""} - mentioned
+    for user in participants:
+        push(
+            user, doc.name, "comment",
+            _("{0} commented on {1}: {2}").format(author_name, doc.name, message[:120]),
+            email_subject=_("[Task Hub] New comment on {0}").format(doc.name),
+            email_html=(f"<p>{author_name} commented on <b>{doc.title}</b>:</p>"
+                        f"<blockquote>{quoted}</blockquote>"),
+        )

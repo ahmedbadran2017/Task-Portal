@@ -15,6 +15,7 @@
   "default_priority",
   "col_defaults",
   "auto_refresh_seconds",
+  "assignee_scope",
   "section_automation",
   "auto_overdue_invoices",
   "overdue_invoice_days",
@@ -42,6 +43,7 @@
   {"fieldname": "default_priority", "fieldtype": "Select", "label": "Default Priority", "options": "Urgent\nHigh\nMedium\nLow", "default": "Medium"},
   {"fieldname": "col_defaults", "fieldtype": "Column Break"},
   {"fieldname": "auto_refresh_seconds", "fieldtype": "Int", "label": "Hub auto-refresh (seconds, 0 = off)", "default": "60"},
+  {"fieldname": "assignee_scope", "fieldtype": "Select", "label": "Who can be assigned tickets", "options": "Employees only\nTask Hub members\nAll system users", "default": "Employees only"},
 
   {"fieldname": "section_automation", "fieldtype": "Section Break", "label": "Auto-Tickets (daily rules — off by default)"},
   {"fieldname": "auto_overdue_invoices", "fieldtype": "Check", "label": "Overdue Sales Invoices → Accounting ticket", "default": "0"},
