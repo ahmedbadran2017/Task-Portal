@@ -66,7 +66,8 @@ def delete_template(name):
 
 @frappe.whitelist()
 def create_from_template(template, title=None, due_date=None, assigned_to=None,
-                         description=None):
+                         description=None, linked_doctype=None, linked_name=None,
+                         linked_label=None, linked_url=None):
     """Instantiate a template: ticket in the template's workspace with its
     checklist copied over. Explicit overrides win."""
     gate_read()
@@ -85,6 +86,10 @@ def create_from_template(template, title=None, due_date=None, assigned_to=None,
         doc.due_date = due_date
     elif int(tpl.due_in_days or 0) > 0:
         doc.due_date = add_days(nowdate(), int(tpl.due_in_days))
+    doc.linked_doctype = linked_doctype or None
+    doc.linked_name = linked_name or None
+    doc.linked_label = linked_label or None
+    doc.linked_url = linked_url or None
     for c in tpl.checklist:
         doc.append("checklist", {"item": c.item, "done": 0})
     doc.insert(ignore_permissions=True)

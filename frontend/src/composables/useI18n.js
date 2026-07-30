@@ -169,6 +169,11 @@ const AR = {
   "No template": "بدون قالب",
   "Add template": "إضافة قالب",
   "Departments": "الأقسام",
+  "Person": "الشخص",
+  "Open now": "مفتوح دلوقتي",
+  "Reported": "أبلغ عن",
+  "Loading…": "جاري التحميل…",
+  "Loading scorecards…": "جاري تحميل الأداء…",
 };
 
 const locale = ref(localStorage.getItem("th_lang") || "en");

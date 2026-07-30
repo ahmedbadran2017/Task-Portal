@@ -59,24 +59,24 @@
         <div class="grid grid-cols-3 gap-2 mt-4 text-center">
           <div>
             <div class="text-xl font-bold text-ink-900 tabular-nums">{{ d.open }}</div>
-            <div class="text-[10px] text-ink-400 uppercase tracking-wide">Open</div>
+            <div class="text-[10px] text-ink-400 uppercase tracking-wide">{{ t("Open") }}</div>
           </div>
           <div>
             <div class="text-xl font-bold text-emerald-600 tabular-nums">{{ d.resolved }}</div>
-            <div class="text-[10px] text-ink-400 uppercase tracking-wide">Resolved</div>
+            <div class="text-[10px] text-ink-400 uppercase tracking-wide">{{ t("Resolved") }}</div>
           </div>
           <div>
             <div class="text-xl font-bold text-ink-700 tabular-nums">
               {{ d.avg_resolution_hours != null ? d.avg_resolution_hours + "h" : "—" }}
             </div>
-            <div class="text-[10px] text-ink-400 uppercase tracking-wide">Avg fix</div>
+            <div class="text-[10px] text-ink-400 uppercase tracking-wide">{{ t("Avg fix") }}</div>
           </div>
         </div>
 
         <!-- SLA compliance bar -->
         <div class="mt-4">
           <div class="flex items-center justify-between text-[11px] mb-1">
-            <span class="text-ink-400">SLA on-time</span>
+            <span class="text-ink-400">{{ t("SLA on-time") }}</span>
             <span class="font-semibold" :style="{ color: complianceColor(d.sla_compliance_pct) }">
               {{ d.sla_compliance_pct != null ? d.sla_compliance_pct + "%" : "no data" }}
             </span>
@@ -112,13 +112,13 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
-              <th class="px-5 py-2.5 font-semibold">Person</th>
-              <th class="px-3 py-2.5 font-semibold">Resolved</th>
-              <th class="px-3 py-2.5 font-semibold">Open now</th>
-              <th class="px-3 py-2.5 font-semibold">Breached</th>
-              <th class="px-3 py-2.5 font-semibold">Reported</th>
-              <th class="px-3 py-2.5 font-semibold">Avg fix</th>
-              <th class="px-5 py-2.5 font-semibold">SLA on-time</th>
+              <th class="px-5 py-2.5 font-semibold">{{ t("Person") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Resolved") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Open now") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Breached") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Reported") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Avg fix") }}</th>
+              <th class="px-5 py-2.5 font-semibold">{{ t("SLA on-time") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -160,7 +160,7 @@
       </div>
     </div>
 
-    <p v-if="loading" class="text-sm text-ink-400 text-center py-4">Loading scorecards…</p>
+    <p v-if="loading" class="text-sm text-ink-400 text-center py-4">{{ t("Loading scorecards…") }}</p>
   </div>
 </template>
 

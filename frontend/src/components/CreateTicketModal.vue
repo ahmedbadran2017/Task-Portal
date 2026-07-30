@@ -7,33 +7,33 @@
     >
       <div class="card w-full max-w-xl p-5 sm:p-6 mt-0 sm:mt-6 rounded-none sm:rounded-2xl min-h-screen sm:min-h-0">
         <div class="flex items-center justify-between mb-5">
-          <h2 class="text-lg font-semibold text-ink-900">New Ticket</h2>
+          <h2 class="text-lg font-semibold text-ink-900">{{ t("New Ticket") }}</h2>
           <button class="btn-ghost !px-2" @click="close">✕</button>
         </div>
 
         <div class="space-y-4">
           <div>
-            <label class="label">Title *</label>
+            <label class="label">{{ t("Title") }} *</label>
             <input
               ref="titleEl"
               v-model="form.title"
               class="input"
-              placeholder="Short summary of the task or problem"
+              :placeholder="t('Short summary of the task or problem')"
               @keydown.meta.enter="submit"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="label">Type</label>
+              <label class="label">{{ t("Type") }}</label>
               <select v-model="form.ticket_type" class="input">
-                <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+                <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
               </select>
             </div>
             <div>
-              <label class="label">Priority</label>
+              <label class="label">{{ t("Priority") }}</label>
               <select v-model="form.priority" class="input">
-                <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
+                <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
               </select>
             </div>
           </div>
@@ -60,34 +60,34 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="label">Source Portal</label>
+              <label class="label">{{ t("Source Portal") }}</label>
               <select v-model="form.source_portal" class="input">
                 <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
               </select>
             </div>
             <div>
-              <label class="label">Due Date</label>
+              <label class="label">{{ t("Due Date") }}</label>
               <input v-model="form.due_date" type="date" class="input" />
             </div>
           </div>
 
           <div>
-            <label class="label">Assign To</label>
+            <label class="label">{{ t("Assign To") }}</label>
             <UserPicker v-model="form.assigned_to" :users="users" />
           </div>
 
           <div>
-            <label class="label">Description</label>
+            <label class="label">{{ t("Description") }}</label>
             <textarea
               v-model="form.description"
               rows="4"
               class="input resize-none"
-              placeholder="Add context, steps, links…"
+              :placeholder="t('Add context, steps, links…')"
             />
           </div>
 
           <div>
-            <label class="label">Attachments</label>
+            <label class="label">{{ t("Attachments") }}</label>
             <input
               ref="fileEl"
               type="file"
@@ -98,7 +98,7 @@
             />
             <div class="flex flex-wrap items-center gap-2">
               <button class="btn-outline" type="button" @click="fileEl?.click()">
-                📎 Add files
+                📎 {{ t("Add files") }}
               </button>
               <span
                 v-for="(f, i) in files"
@@ -117,9 +117,9 @@
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
-          <button class="btn-outline" @click="close">Cancel</button>
+          <button class="btn-outline" @click="close">{{ t("Cancel") }}</button>
           <button class="btn-primary" :disabled="saving || !form.title.trim()" @click="submit">
-            {{ saving ? "Creating…" : "Create Ticket" }}
+            {{ saving ? t("Creating…") : t("Create Ticket") }}
           </button>
         </div>
       </div>
@@ -238,6 +238,10 @@ async function submit() {
           description: form.description,
           due_date: form.due_date || "",
           assigned_to: form.assigned_to || "",
+          linked_doctype: form.linked_doctype || "",
+          linked_name: form.linked_name || "",
+          linked_label: form.linked_label || "",
+          linked_url: form.linked_url || "",
         })
       : await createTicket({ ...form });
     let failed = 0;

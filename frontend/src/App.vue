@@ -1,5 +1,7 @@
 <template>
-  <div class="min-h-screen flex bg-ink-50 text-ink-900">
+  <div class="min-h-screen text-ink-900">
+    <div class="brand-hairline fixed top-0 inset-x-0 z-[60]" />
+    <div class="min-h-screen flex">
     <!-- Sidebar -->
     <aside
       class="hidden md:flex flex-col w-60 shrink-0 bg-white border-r border-ink-200 h-screen sticky top-0"
@@ -20,7 +22,7 @@
           v-for="item in nav"
           :key="item.to"
           :to="item.to"
-          class="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150"
+          class="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 hover:translate-x-0.5 rtl:hover:-translate-x-0.5"
           :class="
             isActive(item.to)
               ? 'bg-brand-50 text-brand-700'
@@ -29,7 +31,7 @@
         >
           <span
             v-if="isActive(item.to)"
-            class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full bg-brand-500"
+            class="absolute left-0 rtl:left-auto rtl:right-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full rtl:rounded-r-none rtl:rounded-l-full bg-brand-500"
           />
           <span
             class="w-7 h-7 grid place-items-center rounded-lg"
@@ -84,7 +86,11 @@
         <div class="md:hidden mb-3">
           <WorkspaceSwitcher />
         </div>
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </transition>
+        </router-view>
       </main>
 
       <!-- mobile bottom tab bar — app-like navigation -->
@@ -96,15 +102,19 @@
           v-for="item in nav"
           :key="item.to"
           :to="item.to"
-          class="flex-1 flex flex-col items-center gap-1 pt-2.5 pb-2 min-h-[56px] transition-colors"
+          class="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 min-h-[56px] transition-colors"
           :class="isActive(item.to) ? 'text-brand-600' : 'text-ink-400'"
         >
-          <NavIcon :name="item.icon" :size="20" />
+          <span
+            class="px-3 py-1 rounded-full transition-colors"
+            :class="isActive(item.to) ? 'bg-brand-100/80' : ''"
+          ><NavIcon :name="item.icon" :size="19" /></span>
           <span class="text-[10px] font-semibold">{{ item.short || item.label }}</span>
         </router-link>
       </nav>
     </div>
 
+    </div>
     <CreateTicketModal />
     <TicketDrawer />
     <Toaster />

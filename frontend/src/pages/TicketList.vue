@@ -57,13 +57,13 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
-              <th class="px-4 py-3 font-semibold">Ticket</th>
-              <th class="px-3 py-3 font-semibold">Portal</th>
-              <th class="px-3 py-3 font-semibold">Priority</th>
-              <th class="px-3 py-3 font-semibold">Status</th>
-              <th class="px-3 py-3 font-semibold">Assignee</th>
+              <th class="px-4 py-3 font-semibold">{{ t("Ticket") }}</th>
+              <th class="px-3 py-3 font-semibold">{{ t("Portal") }}</th>
+              <th class="px-3 py-3 font-semibold">{{ t("Priority") }}</th>
+              <th class="px-3 py-3 font-semibold">{{ t("Status") }}</th>
+              <th class="px-3 py-3 font-semibold">{{ t("Assignee") }}</th>
               <th class="px-3 py-3 font-semibold">SLA</th>
-              <th class="px-4 py-3 font-semibold">Updated</th>
+              <th class="px-4 py-3 font-semibold">{{ t("Updated") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +84,7 @@
               </td>
               <td class="px-3 py-3">
                 <Pill
-                  :label="tk.priority"
+                  :label="t(tk.priority)"
                   :color="PRIORITY_META[tk.priority].color"
                   :bg="PRIORITY_META[tk.priority].bg"
                   dot
@@ -92,7 +92,7 @@
               </td>
               <td class="px-3 py-3">
                 <Pill
-                  :label="tk.status"
+                  :label="t(tk.status)"
                   :color="STATUS_META[tk.status].color"
                   :bg="STATUS_META[tk.status].bg"
                 />
@@ -128,12 +128,12 @@
     </div>
 
     <div class="flex items-center justify-between">
-      <button class="btn-outline" :disabled="start === 0" @click="page(-1)">← Prev</button>
+      <button class="btn-outline" :disabled="start === 0" @click="page(-1)">← {{ t("Prev") }}</button>
       <span class="text-sm text-ink-400">
-        {{ start + 1 }}–{{ Math.min(start + limit, total) }} of {{ total }}
+        {{ start + 1 }}–{{ Math.min(start + limit, total) }} {{ t("of") }} {{ total }}
       </span>
       <button class="btn-outline" :disabled="start + limit >= total" @click="page(1)">
-        Next →
+        {{ t("Next") }} →
       </button>
     </div>
   </div>

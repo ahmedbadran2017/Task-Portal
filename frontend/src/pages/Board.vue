@@ -58,7 +58,7 @@
         :key="col.key"
         class="rounded-2xl p-3 flex flex-col min-h-[200px] border-t-[3px] transition-colors"
         :style="{ borderTopColor: col.color }"
-        :class="dropTarget === col.key ? 'bg-brand-50 ring-2 ring-brand-300' : 'bg-ink-100/60'"
+        :class="dropTarget === col.key ? 'bg-brand-50 ring-2 ring-brand-300' : 'board-col'"
         @dragover.prevent="dropTarget = col.key"
         @dragleave="dropTarget === col.key && (dropTarget = null)"
         @drop="onDrop(col)"

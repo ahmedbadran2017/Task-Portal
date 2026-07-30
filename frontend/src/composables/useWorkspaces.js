@@ -8,8 +8,15 @@ const M = "task_hub.api.workspaces";
 const workspaces = ref([]);
 const current = ref(localStorage.getItem("th_ws") ?? "");
 const loaded = ref(false);
+let inflight = null;
 
 async function load() {
+  if (inflight) return inflight;
+  inflight = _load().finally(() => (inflight = null));
+  return inflight;
+}
+
+async function _load() {
   try {
     workspaces.value = await getMethod(`${M}.list_workspaces`);
     loaded.value = true;
