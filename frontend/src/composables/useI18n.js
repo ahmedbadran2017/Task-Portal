@@ -19,7 +19,7 @@ const AR = {
   "New": "جديدة",
   "Notifications": "الإشعارات",
   "Mark all read": "تعليم الكل كمقروء",
-  "Nothing yet — you're all caught up 🎉": "مفيش جديد — انت متابع كل حاجة 🎉",
+  "Nothing yet — you're all caught up": "مفيش جديد — انت متابع كل حاجة",
 
   // statuses
   "Open": "مفتوحة",
@@ -46,6 +46,8 @@ const AR = {
   "assigned to me": "معينة عليّا",
   "Unassigned": "بدون مسؤول",
   "need an owner": "محتاجة مسؤول",
+  "Reported by me": "بلاغاتي",
+  "opened by me": "اللي أنا فاتحها",
   "Open work by portal": "الشغل المفتوح حسب البوابة",
   "Open by priority": "المفتوح حسب الأولوية",
   "Everything, by status": "الكل حسب الحالة",
@@ -199,7 +201,7 @@ const FR = {
   "New": "Nouveau",
   "Notifications": "Notifications",
   "Mark all read": "Tout marquer comme lu",
-  "Nothing yet — you're all caught up 🎉": "Rien de nouveau — vous êtes à jour 🎉",
+  "Nothing yet — you're all caught up": "Rien de nouveau — vous êtes à jour",
 
   // statuses
   "Open": "Ouvert",
@@ -226,6 +228,8 @@ const FR = {
   "assigned to me": "qui me sont assignés",
   "Unassigned": "Non assignés",
   "need an owner": "sans responsable",
+  "Reported by me": "Signalés par moi",
+  "opened by me": "ouverts par moi",
   "Open work by portal": "Travail ouvert par portail",
   "Open by priority": "Ouverts par priorité",
   "Everything, by status": "Tout, par statut",

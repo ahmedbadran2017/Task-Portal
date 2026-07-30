@@ -1,10 +1,15 @@
-"""Aggregate metrics for the Task Hub dashboard."""
-import frappe
-from frappe.utils import add_days, nowdate, getdate
+"""Aggregate metrics for the Task Hub dashboard.
 
-from task_hub.api.utils import gate_read
+Every query carries the visibility fragment: managers aggregate the whole
+company, everyone else only their own tickets (reporter/assignee/watcher).
+"""
+import frappe
+from frappe.utils import add_days, nowdate
+
+from task_hub.api.utils import gate_read, visibility_sql
 
 OPEN_STATES = ("Open", "In Progress", "In Review")
+OPEN_SQL = "('Open', 'In Progress', 'In Review')"
 
 
 @frappe.whitelist()
@@ -13,30 +18,39 @@ def get_summary():
     / per-priority breakdowns — everything the dashboard needs in one round-trip."""
     gate_read()
     user = frappe.session.user
+    vis, params = visibility_sql()
 
-    def count(filters):
-        return frappe.db.count("Hub Ticket", filters=filters)
+    def count(extra="", more=None):
+        p = dict(params, **(more or {}))
+        return frappe.db.sql(
+            f"SELECT COUNT(*) FROM `tabHub Ticket` WHERE 1=1{vis}{extra}", p,
+        )[0][0]
 
-    total = count({})
-    open_count = count({"status": ["in", OPEN_STATES]})
-    breached = count({"sla_breached": 1, "status": ["in", OPEN_STATES]})
-    resolved = count({"status": ["in", ("Resolved", "Closed")]})
-    mine_open = count({"assigned_to": user, "status": ["in", OPEN_STATES]})
-    unassigned = count({"assigned_to": ["in", (None, "")], "status": ["in", OPEN_STATES]})
+    total = count()
+    open_count = count(f" AND status IN {OPEN_SQL}")
+    breached = count(f" AND status IN {OPEN_SQL} AND sla_breached = 1")
+    resolved = count(" AND status IN ('Resolved', 'Closed')")
+    mine_open = count(f" AND status IN {OPEN_SQL} AND assigned_to = %(me)s",
+                      {"me": user})
+    reported_open = count(f" AND status IN {OPEN_SQL} AND reported_by = %(me)s",
+                          {"me": user})
+    unassigned = count(f" AND status IN {OPEN_SQL} AND COALESCE(assigned_to, '') = ''")
 
-    by_portal = frappe.db.get_all(
-        "Hub Ticket", filters={"status": ["in", OPEN_STATES]},
-        fields=["source_portal as portal", "count(name) as count"],
-        group_by="source_portal", order_by="count desc",
+    by_portal = frappe.db.sql(
+        f"""SELECT source_portal AS portal, COUNT(*) AS count
+            FROM `tabHub Ticket` WHERE status IN {OPEN_SQL}{vis}
+            GROUP BY source_portal ORDER BY count DESC""",
+        params, as_dict=True,
     )
-    by_status = frappe.db.get_all(
-        "Hub Ticket", fields=["status", "count(name) as count"],
-        group_by="status",
+    by_status = frappe.db.sql(
+        f"""SELECT status, COUNT(*) AS count FROM `tabHub Ticket`
+            WHERE 1=1{vis} GROUP BY status""",
+        params, as_dict=True,
     )
-    by_priority = frappe.db.get_all(
-        "Hub Ticket", filters={"status": ["in", OPEN_STATES]},
-        fields=["priority", "count(name) as count"],
-        group_by="priority",
+    by_priority = frappe.db.sql(
+        f"""SELECT priority, COUNT(*) AS count FROM `tabHub Ticket`
+            WHERE status IN {OPEN_SQL}{vis} GROUP BY priority""",
+        params, as_dict=True,
     )
 
     return {
@@ -46,6 +60,7 @@ def get_summary():
             "breached": breached,
             "resolved": resolved,
             "mine_open": mine_open,
+            "reported_open": reported_open,
             "unassigned": unassigned,
         },
         "by_portal": by_portal,
@@ -60,17 +75,19 @@ def get_trends(weeks=8):
     gate_read()
     weeks = max(2, min(26, int(weeks or 8)))
     start = add_days(nowdate(), -7 * weeks)
+    vis, vparams = visibility_sql()
 
     created = frappe.db.sql(
-        """SELECT YEARWEEK(creation, 3) yw, MIN(DATE(creation)) start, COUNT(*) n
-           FROM `tabHub Ticket` WHERE creation >= %s GROUP BY yw""",
-        (start,), as_dict=True,
+        f"""SELECT YEARWEEK(creation, 3) yw, MIN(DATE(creation)) start, COUNT(*) n
+            FROM `tabHub Ticket` WHERE creation >= %(from)s{vis} GROUP BY yw""",
+        dict(vparams, **{"from": start}), as_dict=True,
     )
     resolved = frappe.db.sql(
-        """SELECT YEARWEEK(resolved_on, 3) yw, COUNT(*) n
-           FROM `tabHub Ticket`
-           WHERE resolved_on IS NOT NULL AND resolved_on >= %s GROUP BY yw""",
-        (start,), as_dict=True,
+        f"""SELECT YEARWEEK(resolved_on, 3) yw, COUNT(*) n
+            FROM `tabHub Ticket`
+            WHERE resolved_on IS NOT NULL AND resolved_on >= %(from)s{vis}
+            GROUP BY yw""",
+        dict(vparams, **{"from": start}), as_dict=True,
     )
     resolved_map = {r.yw: r.n for r in resolved}
 
@@ -91,16 +108,24 @@ def get_trends(weeks=8):
     health = []
     for p in ("Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent",
               "Website", "Mobile App", "Other"):
-        open_now = frappe.db.count("Hub Ticket", {
-            "source_portal": p, "status": ["in", OPEN_STATES]})
-        breached = frappe.db.count("Hub Ticket", {
-            "source_portal": p, "status": ["in", OPEN_STATES], "sla_breached": 1})
+        pp = dict(vparams, portal=p, month_ago=month_ago)
+        open_now = frappe.db.sql(
+            f"""SELECT COUNT(*) FROM `tabHub Ticket`
+                WHERE source_portal = %(portal)s AND status IN {OPEN_SQL}{vis}""",
+            pp,
+        )[0][0]
+        breached = frappe.db.sql(
+            f"""SELECT COUNT(*) FROM `tabHub Ticket`
+                WHERE source_portal = %(portal)s AND status IN {OPEN_SQL}
+                  AND sla_breached = 1{vis}""",
+            pp,
+        )[0][0]
         row = frappe.db.sql(
-            """SELECT COUNT(*) n, AVG(TIMESTAMPDIFF(HOUR, creation, resolved_on)) avg_h
-               FROM `tabHub Ticket`
-               WHERE source_portal = %s AND resolved_on IS NOT NULL
-                 AND resolved_on >= %s""",
-            (p, month_ago), as_dict=True,
+            f"""SELECT COUNT(*) n, AVG(TIMESTAMPDIFF(HOUR, creation, resolved_on)) avg_h
+                FROM `tabHub Ticket`
+                WHERE source_portal = %(portal)s AND resolved_on IS NOT NULL
+                  AND resolved_on >= %(month_ago)s{vis}""",
+            pp, as_dict=True,
         )[0]
         if not any((open_now, breached, row.n)):
             continue

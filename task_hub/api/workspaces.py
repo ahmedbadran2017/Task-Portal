@@ -4,11 +4,23 @@ import json
 import frappe
 from frappe import _
 
-from task_hub.api.utils import gate_read, gate_manager
+from task_hub.api.utils import gate_read, gate_manager, visibility_sql
 from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
     ensure_default_workspace, workspace_members, GLOBAL_STATUSES)
 
 OPEN_STATES = ("Open", "In Progress", "In Review")
+
+
+def _open_count(workspace):
+    """Open tickets in a workspace, scoped to what the caller may see."""
+    vis, params = visibility_sql()
+    params["ws"] = workspace
+    return frappe.db.sql(
+        f"""SELECT COUNT(*) FROM `tabHub Ticket`
+            WHERE workspace = %(ws)s
+              AND status IN ('Open', 'In Progress', 'In Review'){vis}""",
+        params,
+    )[0][0]
 
 
 @frappe.whitelist()
@@ -35,8 +47,7 @@ def list_workspaces():
             "is_member": user in members,
             "members": members,
             "member_count": len(members),
-            "open_count": frappe.db.count("Hub Ticket", {
-                "workspace": ws.name, "status": ["in", OPEN_STATES]}),
+            "open_count": _open_count(ws.name),
             "stages": [
                 {"stage_name": s.stage_name, "maps_to": s.maps_to,
                  "color": s.color or "#78716c"}

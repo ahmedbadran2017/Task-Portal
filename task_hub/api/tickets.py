@@ -13,7 +13,8 @@ from frappe.utils import now_datetime
 from frappe.utils.file_manager import save_file
 
 from task_hub.api.utils import (
-    gate_read, can_edit_ticket, normalize_portal,
+    gate_read, can_edit_ticket, normalize_portal, visibility_sql,
+    can_view_ticket,
     VALID_TYPES, VALID_PRIORITIES, VALID_STATUSES,
 )
 
@@ -98,40 +99,54 @@ def list_tickets(status=None, priority=None, source_portal=None,
                  department=None, workspace=None, search=None, breached_only=0,
                  mine=0, unassigned=0, due_from=None, due_to=None,
                  limit=100, start=0, order_by="modified desc"):
-    """Filtered ticket list for the Hub board / list views."""
-    gate_read()
-    filters = {}
-    if status:
-        filters["status"] = status
-    if department:
-        filters["department"] = department
-    if workspace:
-        filters["workspace"] = workspace
-    if due_from and due_to:
-        filters["due_date"] = ["between", (due_from, due_to)]
-    elif due_from:
-        filters["due_date"] = [">=", due_from]
-    if int(unassigned or 0):
-        filters["assigned_to"] = ["in", (None, "")]
-    if priority:
-        filters["priority"] = priority
-    if source_portal:
-        filters["source_portal"] = source_portal
-    if ticket_type:
-        filters["ticket_type"] = ticket_type
-    if assigned_to:
-        filters["assigned_to"] = assigned_to
-    if reported_by:
-        filters["reported_by"] = reported_by
-    if int(breached_only or 0):
-        filters["sla_breached"] = 1
-    if int(mine or 0):
-        filters["assigned_to"] = frappe.session.user
+    """Filtered ticket list for the Hub board / list views.
 
-    or_filters = None
+    Non-managers only ever see their own tickets (reporter, assignee, or
+    watcher) — the visibility fragment ANDs with every other filter, so it
+    composes with search unlike frappe.get_all's single or_filters group.
+    """
+    gate_read()
+    conds, params = ["1=1"], {}
+
+    def eq(field, value):
+        conds.append(f"{field} = %({field})s")
+        params[field] = value
+
+    if status:
+        eq("status", status)
+    if department:
+        eq("department", department)
+    if workspace:
+        eq("workspace", workspace)
+    if due_from and due_to:
+        conds.append("due_date BETWEEN %(due_from)s AND %(due_to)s")
+        params.update(due_from=due_from, due_to=due_to)
+    elif due_from:
+        conds.append("due_date >= %(due_from)s")
+        params["due_from"] = due_from
+    if int(unassigned or 0):
+        conds.append("COALESCE(assigned_to, '') = ''")
+    if priority:
+        eq("priority", priority)
+    if source_portal:
+        eq("source_portal", source_portal)
+    if ticket_type:
+        eq("ticket_type", ticket_type)
+    if assigned_to:
+        eq("assigned_to", assigned_to)
+    if reported_by:
+        eq("reported_by", reported_by)
+    if int(breached_only or 0):
+        conds.append("sla_breached = 1")
+    if int(mine or 0):
+        conds.append("assigned_to = %(mine_user)s")
+        params["mine_user"] = frappe.session.user
     if search:
-        like = f"%{search}%"
-        or_filters = {"title": ["like", like], "name": ["like", like]}
+        conds.append("(title LIKE %(search)s OR name LIKE %(search)s)")
+        params["search"] = f"%{search}%"
+
+    vis, vis_params = visibility_sql()
+    params.update(vis_params)
 
     # Whitelist order_by to avoid injection through the SPA.
     allowed_order = {
@@ -140,12 +155,17 @@ def list_tickets(status=None, priority=None, source_portal=None,
     }
     order_by = order_by if order_by in allowed_order else "modified desc"
 
-    rows = frappe.get_all(
-        "Hub Ticket", filters=filters, or_filters=or_filters,
-        fields=LIST_FIELDS, limit_page_length=int(limit),
-        limit_start=int(start), order_by=order_by,
+    where = " AND ".join(conds) + vis
+    fields = ", ".join(f"`{f}`" for f in LIST_FIELDS)
+    params.update(limit=int(limit), start=int(start))
+    rows = frappe.db.sql(
+        f"""SELECT {fields} FROM `tabHub Ticket` WHERE {where}
+            ORDER BY {order_by} LIMIT %(limit)s OFFSET %(start)s""",
+        params, as_dict=True,
     )
-    total = frappe.db.count("Hub Ticket", filters=filters)
+    total = frappe.db.sql(
+        f"SELECT COUNT(*) FROM `tabHub Ticket` WHERE {where}", params,
+    )[0][0]
     return {"tickets": rows, "total": total}
 
 
@@ -154,6 +174,10 @@ def get_ticket(name):
     """Full ticket incl. comments, activity timeline, and attachments."""
     gate_read()
     doc = frappe.get_doc("Hub Ticket", name)
+    if not can_view_ticket(doc):
+        frappe.throw(
+            _("You can only open tickets you reported, are assigned to, or watch."),
+            frappe.PermissionError)
     d = doc.as_dict()
     return {
         "ticket": {k: d.get(k) for k in (LIST_FIELDS + [

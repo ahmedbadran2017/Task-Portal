@@ -28,12 +28,12 @@
     <div v-if="ticket.due_date" class="mt-1.5">
       <span class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded"
             :class="dueOver ? 'text-rose-700 bg-rose-50 font-semibold' : 'text-ink-500 bg-ink-50'">
-        📅 {{ fmtDate(ticket.due_date) }}
+        <NavIcon name="calendar" :size="10" /> {{ fmtDate(ticket.due_date) }}
       </span>
     </div>
     <div v-if="ticket.linked_label" class="mt-1.5">
       <span class="inline-flex items-center gap-1 text-[11px] text-ink-500 bg-ink-50 px-1.5 py-0.5 rounded">
-        🔗 {{ ticket.linked_label }}
+        <NavIcon name="link" :size="10" /> {{ ticket.linked_label }}
       </span>
     </div>
 
@@ -66,6 +66,7 @@
 <script setup>
 import { computed } from "vue";
 import Pill from "./Pill.vue";
+import NavIcon from "./NavIcon.vue";
 import { PRIORITY_META, PORTAL_META } from "@/composables/useTickets";
 import { relTime, fmtDate } from "@/composables/useApi";
 

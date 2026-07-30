@@ -48,6 +48,37 @@ def gate_manager():
                      frappe.PermissionError)
 
 
+def can_view_all(user=None):
+    """Managers/admins see the whole hub; everyone else only their own work."""
+    return is_manager(user)
+
+
+def visibility_sql(user=None):
+    """WHERE fragment + params scoping rows to the user's own tickets —
+    reporter, assignee, or watcher. Empty for managers (they see all)."""
+    user = user or frappe.session.user
+    if can_view_all(user):
+        return "", {}
+    return (
+        " AND (reported_by = %(vis_user)s OR assigned_to = %(vis_user)s"
+        " OR COALESCE(watchers, '') LIKE %(vis_watch)s)",
+        {"vis_user": user, "vis_watch": f"%{user}%"},
+    )
+
+
+def can_view_ticket(doc):
+    """Managers, the reporter, the assignee, and watchers may open a ticket."""
+    if can_view_all():
+        return True
+    user = frappe.session.user
+    if user in (doc.reported_by, doc.assigned_to):
+        return True
+    try:
+        return user in doc.watcher_list()
+    except Exception:
+        return False
+
+
 def normalize_portal(value):
     value = (value or "Other").strip().title()
     return value if value in VALID_PORTALS else "Other"

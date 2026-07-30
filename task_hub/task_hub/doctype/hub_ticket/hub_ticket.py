@@ -118,12 +118,17 @@ class HubTicket(Document):
 
     # -------------------------------------------------------------- helpers
     def _sync_workspace(self):
-        """Every ticket lives in a workspace; strays land in the default one.
-        The stage defaults to the workspace stage matching the status."""
+        """Every ticket lives in a workspace. Unrouted tickets go to the
+        workspace owning the reporter's department (so each team's work lands
+        on its own board), else the default one. The stage defaults to the
+        workspace stage matching the status."""
         from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
             ensure_default_workspace, stage_for_status)
         if self.workspace and not frappe.db.exists("Hub Workspace", self.workspace):
             self.workspace = None
+        if not self.workspace and self.department:
+            self.workspace = frappe.db.get_value(
+                "Hub Workspace", {"department": self.department}, "name")
         if not self.workspace:
             try:
                 self.workspace = ensure_default_workspace()

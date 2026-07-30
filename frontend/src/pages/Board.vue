@@ -24,14 +24,16 @@
           class="px-3 py-2 text-xs font-semibold transition"
           :class="view === 'board' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
           @click="setView('board')"
-        >▦ {{ t("Board") }}</button>
+        ><NavIcon name="board" :size="13" /> {{ t("Board") }}</button>
         <button
           class="px-3 py-2 text-xs font-semibold transition"
           :class="view === 'calendar' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
           @click="setView('calendar')"
-        >📅 {{ t("Calendar") }}</button>
+        ><NavIcon name="calendar" :size="13" /> {{ t("Calendar") }}</button>
       </div>
-      <button v-if="view === 'board'" class="btn-outline" @click="load">↻ {{ t("Refresh") }}</button>
+      <button v-if="view === 'board'" class="btn-outline" @click="load">
+        <NavIcon name="refresh" :size="13" /> {{ t("Refresh") }}
+      </button>
     </div>
 
     <CalendarView v-if="view === 'calendar'" />
@@ -112,6 +114,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import TicketCard from "@/components/TicketCard.vue";
 import CalendarView from "@/components/CalendarView.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";

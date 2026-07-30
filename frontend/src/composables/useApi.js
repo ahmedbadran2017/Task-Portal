@@ -19,6 +19,16 @@ export function currentUserId() {
   return (typeof window !== "undefined" && window.user_id) || "Guest";
 }
 
+// Mirrors MANAGER_ROLES in task_hub/api/utils.py — managers see the whole
+// hub; everyone else only their own tickets. hasRole() already grants
+// Administrator / System Manager.
+export function isManager() {
+  return hasRole(
+    "Task Hub Admin", "Task Hub Manager",
+    "Purchase Manager", "Accounts Manager", "Logistics Manager", "Stock Manager"
+  );
+}
+
 function getCsrf() {
   if (typeof window !== "undefined" && window.csrf_token) return window.csrf_token;
   const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);

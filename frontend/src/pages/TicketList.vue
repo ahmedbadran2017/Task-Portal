@@ -43,7 +43,9 @@
         <button class="hover:text-rose-600" @click="filters.department = ''; reload()">✕</button>
       </span>
       <div class="flex-1" />
-      <button class="btn-outline !py-1.5 text-xs" @click="exportCsv">⬇ {{ t("Export CSV") }}</button>
+      <button class="btn-outline !py-1.5 text-xs" @click="exportCsv">
+        <NavIcon name="download" :size="13" /> {{ t("Export CSV") }}
+      </button>
       <span class="text-sm text-ink-400">{{ total }} {{ t("tickets") }}</span>
     </div>
 
@@ -110,7 +112,9 @@
               <td class="px-3 py-3">
                 <span v-if="tk.sla_breached" class="text-xs font-bold text-rose-600">{{ t("Breached") }}</span>
                 <span v-else class="text-xs text-ink-500">{{ relTime(tk.sla_deadline) }}</span>
-                <span v-if="tk.due_date" class="block text-[10px] text-ink-400 mt-0.5">📅 {{ tk.due_date }}</span>
+                <span v-if="tk.due_date" class="inline-flex items-center gap-1 text-[10px] text-ink-400 mt-0.5">
+                  <NavIcon name="calendar" :size="10" /> {{ tk.due_date }}
+                </span>
               </td>
               <td class="px-4 py-3 text-ink-400 text-xs whitespace-nowrap">
                 {{ relTime(tk.modified) }}
@@ -143,6 +147,7 @@
 import { ref, reactive, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import Pill from "@/components/Pill.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
 import { useWorkspaces } from "@/composables/useWorkspaces";
@@ -150,7 +155,7 @@ import {
   STATUSES, PORTALS, PRIORITIES, TYPES, PRIORITY_META, STATUS_META, PORTAL_META,
   listTickets,
 } from "@/composables/useTickets";
-import { relTime } from "@/composables/useApi";
+import { relTime, currentUserId, isManager } from "@/composables/useApi";
 
 const ui = useUi();
 const { t } = useI18n();
@@ -173,12 +178,15 @@ const filters = reactive({
   breached_only: 0,
   mine: 0,
   unassigned: 0,
+  reported_by: "",
   department: "",
 });
 
+// The unassigned pool only means something to managers — everyone else's
+// list is already scoped to their own tickets.
 const quickChips = [
   { key: "mine", label: t("Mine") },
-  { key: "unassigned", label: t("Unassigned") },
+  ...(isManager() ? [{ key: "unassigned", label: t("Unassigned") }] : []),
   { key: "breached_only", label: t("SLA breached") },
 ];
 
@@ -188,6 +196,7 @@ function applyRouteQuery() {
   filters.breached_only = q.breached ? 1 : 0;
   filters.mine = q.mine ? 1 : 0;
   filters.unassigned = q.unassigned ? 1 : 0;
+  filters.reported_by = q.reported ? currentUserId() : "";
   if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
   filters.department = typeof q.department === "string" ? q.department : "";
   if (typeof q.portal === "string" && PORTALS.includes(q.portal)) filters.source_portal = q.portal;

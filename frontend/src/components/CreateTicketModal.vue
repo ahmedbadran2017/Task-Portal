@@ -99,7 +99,7 @@
             />
             <div class="flex flex-wrap items-center gap-2">
               <button class="btn-outline" type="button" @click="fileEl?.click()">
-                📎 {{ t("Add files") }}
+                <NavIcon name="paperclip" :size="14" /> {{ t("Add files") }}
               </button>
               <span
                 v-for="(f, i) in files"
@@ -112,8 +112,8 @@
             </div>
           </div>
 
-          <div v-if="form.linked_label" class="text-xs text-ink-500 bg-ink-50 rounded-lg px-3 py-2">
-            🔗 Linked to <b>{{ form.linked_label }}</b>
+          <div v-if="form.linked_label" class="text-xs text-ink-500 bg-ink-50 rounded-lg px-3 py-2 flex items-center gap-1.5">
+            <NavIcon name="link" :size="12" /> Linked to <b>{{ form.linked_label }}</b>
           </div>
         </div>
 
@@ -132,6 +132,7 @@
 import { reactive, ref, watch, nextTick } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
 import AiPolish from "@/components/AiPolish.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useWorkspaces } from "@/composables/useWorkspaces";
 import { useI18n } from "@/composables/useI18n";
 import { useUi } from "@/composables/useUi";

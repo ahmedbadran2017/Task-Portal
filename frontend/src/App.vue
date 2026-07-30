@@ -145,7 +145,7 @@ import NotificationBell from "@/components/NotificationBell.vue";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
-import { COMPANY } from "@/composables/useApi";
+import { COMPANY, isManager } from "@/composables/useApi";
 
 const ui = useUi();
 const route = useRoute();
@@ -158,14 +158,18 @@ const logoSrc = import.meta.env.DEV
   ? "/justyol-logo.png"
   : "/assets/task_hub/justyol-logo.png";
 
-const nav = computed(() => [
-  { to: "/dashboard", label: t("Dashboard"), icon: "dashboard" },
-  { to: "/my", label: t("My Work"), icon: "user" },
-  { to: "/board", label: t("Board"), icon: "board" },
-  { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
-  { to: "/teams", label: t("Teams"), icon: "users" },
-  { to: "/settings", label: t("Settings"), icon: "settings" },
-]);
+// Teams (scorecards) is management-only — everyone else's hub is scoped to
+// their own tickets, so a performance page would be empty noise.
+const nav = computed(() =>
+  [
+    { to: "/dashboard", label: t("Dashboard"), icon: "dashboard" },
+    { to: "/my", label: t("My Work"), icon: "user" },
+    { to: "/board", label: t("Board"), icon: "board" },
+    { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
+    { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true },
+    { to: "/settings", label: t("Settings"), icon: "settings" },
+  ].filter((i) => !i.managerOnly || isManager())
+);
 
 const fullName = (typeof window !== "undefined" && window.full_name) || "User";
 const company = COMPANY;

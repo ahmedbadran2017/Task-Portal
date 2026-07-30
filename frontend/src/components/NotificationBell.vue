@@ -17,13 +17,13 @@
       class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-ink-200 rounded-2xl shadow-xl z-50 overflow-hidden"
     >
       <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
-        <span class="text-sm font-bold text-ink-900">Notifications</span>
+        <span class="text-sm font-bold text-ink-900">{{ t("Notifications") }}</span>
         <button
           v-if="unread"
           class="text-[11px] font-semibold text-brand-600 hover:underline"
           @click="markAll"
         >
-          Mark all read
+          {{ t("Mark all read") }}
         </button>
       </div>
       <div class="max-h-[60vh] overflow-y-auto scroll-thin">
@@ -35,9 +35,9 @@
           @click="openItem(n)"
         >
           <span
-            class="w-7 h-7 rounded-full grid place-items-center text-xs shrink-0 mt-0.5 font-bold text-white"
+            class="w-7 h-7 rounded-full grid place-items-center shrink-0 mt-0.5 text-white"
             :style="{ background: meta(n.ntype).color }"
-          >{{ meta(n.ntype).icon }}</span>
+          ><NavIcon :name="meta(n.ntype).icon" :size="13" /></span>
           <span class="min-w-0">
             <span class="block text-[13px] text-ink-800 leading-snug line-clamp-2">{{ n.message }}</span>
             <span class="block text-[11px] text-ink-400 mt-0.5">
@@ -47,7 +47,8 @@
           <span v-if="!n.seen" class="w-2 h-2 rounded-full bg-brand-500 shrink-0 mt-2 ml-auto" />
         </button>
         <p v-if="!items.length" class="px-4 py-8 text-center text-sm text-ink-400">
-          Nothing yet — you're all caught up 🎉
+          <NavIcon name="sparkles" :size="18" class="inline-block mb-1 text-brand-400" /><br />
+          {{ t("Nothing yet — you're all caught up") }}
         </p>
       </div>
     </div>
@@ -58,18 +59,20 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import NavIcon from "./NavIcon.vue";
 import { useUi } from "@/composables/useUi";
+import { useI18n } from "@/composables/useI18n";
 import { myNotifications, markSeen, NOTIF_META } from "@/composables/useTickets";
 import { relTime } from "@/composables/useApi";
 
 const ui = useUi();
+const { t } = useI18n();
 const open = ref(false);
 const items = ref([]);
 const unread = ref(0);
 const rootEl = ref(null);
 let timer = null;
 
-function meta(t) {
-  return NOTIF_META[t] || { icon: "•", color: "#78716c" };
+function meta(kind) {
+  return NOTIF_META[kind] || { icon: "bell", color: "#78716c" };
 }
 
 async function load() {

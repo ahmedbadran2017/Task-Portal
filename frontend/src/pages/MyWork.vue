@@ -20,20 +20,20 @@
 
     <div v-if="error" class="card p-4 text-sm text-rose-600 bg-rose-50 border-rose-200">{{ error }}</div>
 
-    <Section v-if="breached.length" :title="'⏰ ' + t('SLA breached')" tone="#e11d48">
+    <Section v-if="breached.length" icon="alarm" :title="t('SLA breached')" tone="#e11d48">
       <Row v-for="tk in breached" :key="tk.name" :tk="tk" @open="ui.openTicket" />
     </Section>
 
-    <Section v-if="dueSoon.length" :title="'⏳ ' + t('Due') + ' ≤ 24h'" tone="#d97706">
+    <Section v-if="dueSoon.length" icon="hourglass" :title="t('Due') + ' ≤ 24h'" tone="#d97706">
       <Row v-for="tk in dueSoon" :key="tk.name" :tk="tk" @open="ui.openTicket" />
     </Section>
 
-    <Section v-if="rest.length" :title="'☰ ' + t('All Tickets')" tone="#78716c">
+    <Section v-if="rest.length" icon="list" :title="t('All Tickets')" tone="#78716c">
       <Row v-for="tk in rest" :key="tk.name" :tk="tk" @open="ui.openTicket" />
     </Section>
 
     <div v-if="!tickets.length && !loading" class="card p-10 text-center">
-      <div class="text-4xl mb-3">🏖️</div>
+      <NavIcon name="check-circle" :size="32" class="inline-block mb-3 text-emerald-500" />
       <p class="text-sm text-ink-500">{{ t("No open tickets — all clear") }}</p>
     </div>
   </div>
@@ -42,6 +42,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, h } from "vue";
 import Pill from "@/components/Pill.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
 import { listTickets, PRIORITY_META } from "@/composables/useTickets";
@@ -92,12 +93,12 @@ watch(() => ui.state.rev, load);
 const Section = (props, { slots }) =>
   h("div", { class: "card overflow-hidden" }, [
     h("div", {
-      class: "px-4 py-2.5 text-xs font-bold uppercase tracking-wide border-b border-ink-100",
+      class: "px-4 py-2.5 text-xs font-bold uppercase tracking-wide border-b border-ink-100 flex items-center gap-1.5",
       style: { color: props.tone },
-    }, props.title),
+    }, [props.icon ? h(NavIcon, { name: props.icon, size: 13 }) : null, props.title]),
     h("div", {}, slots.default?.()),
   ]);
-Section.props = ["title", "tone"];
+Section.props = ["title", "tone", "icon"];
 
 const Row = (props, { emit }) =>
   h("button", {

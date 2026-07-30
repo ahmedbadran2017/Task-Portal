@@ -10,7 +10,7 @@ Employee scorecard (per assignee, optionally inside one department):
 import frappe
 from frappe.utils import add_days, nowdate, cint
 
-from task_hub.api.utils import gate_read
+from task_hub.api.utils import gate_manager
 
 OPEN_STATES = ("Open", "In Progress", "In Review")
 
@@ -23,7 +23,7 @@ def _period(days):
 @frappe.whitelist()
 def department_scorecard(days=30):
     """One row per department that has employees or tickets."""
-    gate_read()
+    gate_manager()
     since, days = _period(days)
 
     # Active headcount per department.
@@ -83,7 +83,7 @@ def department_scorecard(days=30):
 @frappe.whitelist()
 def workspace_scorecard(days=30):
     """One row per workspace — the same health metrics, cut by workspace."""
-    gate_read()
+    gate_manager()
     since, days = _period(days)
 
     load = {r.workspace: r for r in frappe.db.sql(
@@ -134,7 +134,7 @@ def employee_scorecard(days=30, department=None, workspace=None):
     """One row per person. With `department`, covers that team's employees;
     with `workspace`, covers its members with stats scoped to that
     workspace's tickets; otherwise everyone who has tickets."""
-    gate_read()
+    gate_manager()
     since, days = _period(days)
 
     params = {"since": since, "open": OPEN_STATES}

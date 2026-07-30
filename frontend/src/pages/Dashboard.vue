@@ -7,20 +7,27 @@
     <!-- KPI row — each tile jumps to the matching filtered view -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <StatTile
-        icon="◎" :label="t('Open')" :value="kpi.open" tone="#3b82f6" tint="#eff6ff"
+        icon="circle-dot" :label="t('Open')" :value="kpi.open" tone="#3b82f6" tint="#eff6ff"
         :hint="t('tickets in progress')" @click="go('/board')"
       />
       <StatTile
-        icon="⏰" :label="t('SLA Breached')" :value="kpi.breached" tone="#e11d48" tint="#fff1f2"
+        icon="alarm" :label="t('SLA Breached')" :value="kpi.breached" tone="#e11d48" tint="#fff1f2"
         :hint="t('past deadline')" :pulse="kpi.breached > 0" @click="go('/tickets', { breached: 1 })"
       />
       <StatTile
-        icon="◑" :label="t('My Queue')" :value="kpi.mine_open" tone="#7c3aed" tint="#f5f3ff"
+        icon="inbox" :label="t('My Queue')" :value="kpi.mine_open" tone="#7c3aed" tint="#f5f3ff"
         :hint="t('assigned to me')" @click="go('/tickets', { mine: 1 })"
       />
+      <!-- managers triage the unassigned pool; everyone else tracks what they reported -->
       <StatTile
-        icon="○" :label="t('Unassigned')" :value="kpi.unassigned" tone="#d97706" tint="#fffbeb"
+        v-if="manager"
+        icon="circle-dashed" :label="t('Unassigned')" :value="kpi.unassigned" tone="#d97706" tint="#fffbeb"
         :hint="t('need an owner')" @click="go('/tickets', { unassigned: 1 })"
+      />
+      <StatTile
+        v-else
+        icon="flag" :label="t('Reported by me')" :value="kpi.reported_open" tone="#d97706" tint="#fffbeb"
+        :hint="t('opened by me')" @click="go('/tickets', { reported: 1 })"
       />
     </div>
 
@@ -40,7 +47,7 @@
             @click="go('/tickets', { portal: row.portal })"
           />
           <div v-if="!byPortal.length" class="text-center py-6">
-            <div class="text-3xl mb-2">🎉</div>
+            <NavIcon name="check-circle" :size="28" class="inline-block mb-2 text-emerald-500" />
             <p class="text-sm text-ink-400">{{ t("No open tickets — all clear") }}</p>
           </div>
         </div>
@@ -129,14 +136,17 @@
 import { ref, computed, onMounted, onUnmounted, watch, h } from "vue";
 import { useRouter } from "vue-router";
 import TrendChart from "@/components/TrendChart.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
+import { isManager } from "@/composables/useApi";
 import {
   getSummary, getSettings, getTrends, PRIORITIES, STATUSES, PRIORITY_META, STATUS_META, PORTAL_META,
 } from "@/composables/useTickets";
 
 const ui = useUi();
 const { t } = useI18n();
+const manager = isManager();
 const router = useRouter();
 const loading = ref(true);
 const error = ref("");
@@ -149,6 +159,7 @@ const kpi = computed(() => ({
   breached: summary.value.totals.breached || 0,
   mine_open: summary.value.totals.mine_open || 0,
   unassigned: summary.value.totals.unassigned || 0,
+  reported_open: summary.value.totals.reported_open || 0,
 }));
 
 const byPortal = computed(() => summary.value.by_portal || []);
@@ -217,10 +228,10 @@ const StatTile = (props, { emit }) =>
           h(
             "span",
             {
-              class: "w-8 h-8 grid place-items-center rounded-xl text-base",
+              class: "w-8 h-8 grid place-items-center rounded-xl",
               style: { background: props.tint, color: props.tone },
             },
-            props.icon
+            [h(NavIcon, { name: props.icon, size: 16 })]
           ),
           props.pulse
             ? h("span", { class: "w-2 h-2 rounded-full animate-pulse", style: { background: props.tone } })

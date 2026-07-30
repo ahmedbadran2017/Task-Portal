@@ -33,14 +33,15 @@
                 :class="data.watching ? '!text-brand-600 font-bold' : ''"
                 @click="onWatch"
               >
-                {{ data.watching ? "👁 " + t("Watching") : "👁 " + t("Watch") }}
+                <NavIcon name="eye" :size="13" class="inline-block -mt-0.5" />
+                {{ data.watching ? t("Watching") : t("Watch") }}
               </button>
               <button
                 v-if="data && canShowEdit && !editing"
                 class="btn-ghost !px-2.5 !py-1.5 text-xs"
                 @click="startEdit"
               >
-                ✎ {{ t("Edit") }}
+                <NavIcon name="pencil" :size="12" class="inline-block -mt-0.5" /> {{ t("Edit") }}
               </button>
               <button class="btn-ghost !px-2" @click="close">✕</button>
             </div>
@@ -128,7 +129,7 @@
                   <label class="label !mb-0">{{ t("Attachments") }}</label>
                   <input ref="fileEl" type="file" multiple class="hidden" @change="onUpload" />
                   <button class="btn-outline !px-2.5 !py-1 text-xs" :disabled="busy" @click="fileEl?.click()">
-                    📎 {{ t("Add") }}
+                    <NavIcon name="paperclip" :size="12" class="inline-block -mt-0.5" /> {{ t("Add") }}
                   </button>
                 </div>
                 <div v-if="data.attachments?.length" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -271,8 +272,10 @@
                   target="_blank"
                   rel="noopener"
                   class="text-sm text-brand-600 hover:underline break-all"
-                >🔗 {{ data.ticket.linked_label }}</a>
-                <span v-else class="text-sm text-ink-700">🔗 {{ data.ticket.linked_label }}</span>
+                ><NavIcon name="link" :size="12" class="inline-block -mt-0.5" /> {{ data.ticket.linked_label }}</a>
+                <span v-else class="text-sm text-ink-700">
+                  <NavIcon name="link" :size="12" class="inline-block -mt-0.5" /> {{ data.ticket.linked_label }}
+                </span>
               </div>
 
               <div class="pt-2 border-t border-ink-200/60 space-y-2.5 text-sm">

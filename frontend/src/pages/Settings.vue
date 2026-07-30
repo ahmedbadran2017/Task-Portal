@@ -125,11 +125,12 @@
     <div class="card p-6">
       <h3 class="text-sm font-bold text-ink-900 mb-5">AI Assist</h3>
       <div class="flex items-center justify-between gap-4">
-        <label class="text-sm text-ink-700">
-          ✨ AI description rewrite — write in any language, get a clean English version
+        <label class="text-sm text-ink-700 flex items-start gap-1.5">
+          <NavIcon name="sparkles" :size="14" class="mt-0.5 text-brand-500 shrink-0" />
+          <span>AI description rewrite — write in any language, get a clean English version
           <span class="block text-[11px] text-ink-400">
             uses the Anthropic key configured on the site (site_config); the button hides itself when no key is set
-          </span>
+          </span></span>
         </label>
         <Toggle v-model="form.ai_polish" :disabled="!canEdit" />
       </div>
@@ -268,7 +269,7 @@
               · {{ w.stages.map((s) => s.stage_name).join(" → ") }}
             </div>
           </div>
-          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditWs(w)">✎</button>
+          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditWs(w)"><NavIcon name="pencil" :size="12" /></button>
           <button
             v-if="canEdit && !w.is_default"
             class="text-ink-300 hover:text-rose-600 text-sm"
@@ -439,7 +440,7 @@
               <template v-if="tp.due_in_days"> · +{{ tp.due_in_days }}d</template>
             </div>
           </div>
-          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditTpl(tp)">✎</button>
+          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditTpl(tp)"><NavIcon name="pencil" :size="12" /></button>
           <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeTpl(tp)">✕</button>
         </div>
       </div>
@@ -458,6 +459,7 @@
 <script setup>
 import { reactive, ref, onMounted, h } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
 import { useWorkspaces } from "@/composables/useWorkspaces";

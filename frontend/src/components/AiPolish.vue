@@ -9,8 +9,12 @@
       :disabled="busy || !hasText"
       @click="polish"
     >
-      <span v-if="busy" class="animate-pulse">✨ {{ t("Rewriting…") }}</span>
-      <span v-else>✨ {{ t("Rewrite in English") }}</span>
+      <span v-if="busy" class="animate-pulse inline-flex items-center gap-1.5">
+        <NavIcon name="sparkles" :size="13" /> {{ t("Rewriting…") }}
+      </span>
+      <span v-else class="inline-flex items-center gap-1.5">
+        <NavIcon name="sparkles" :size="13" /> {{ t("Rewrite in English") }}
+      </span>
     </button>
 
     <div
@@ -18,7 +22,7 @@
       class="rounded-xl border border-brand-200 bg-brand-50/60 p-3 space-y-2 fade-up"
     >
       <div class="flex items-center gap-1.5 text-[11px] font-bold text-brand-700 uppercase tracking-wide">
-        ✨ {{ t("AI suggestion") }}
+        <NavIcon name="sparkles" :size="12" /> {{ t("AI suggestion") }}
       </div>
       <div class="text-sm text-ink-800 whitespace-pre-wrap leading-relaxed">{{ preview }}</div>
       <div class="flex gap-2 pt-1">
@@ -38,6 +42,7 @@
 // to task_hub.api.ai.polish_description, shows the suggestion as a preview,
 // and only replaces the text when the user explicitly accepts it.
 import { ref, computed, onMounted } from "vue";
+import NavIcon from "@/components/NavIcon.vue";
 import { useAi } from "@/composables/useAi";
 import { useI18n } from "@/composables/useI18n";
 import { useToast } from "@/composables/useToast";
