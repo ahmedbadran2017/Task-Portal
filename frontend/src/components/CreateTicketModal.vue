@@ -38,13 +38,24 @@
             </div>
           </div>
 
-          <div v-if="workspaces.length > 1">
-            <label class="label">{{ t("Workspace") }}</label>
-            <select v-model="form.workspace" class="input">
-              <option v-for="w in workspaces" :key="w.name" :value="w.name">
-                {{ w.icon }} {{ w.name }}
-              </option>
-            </select>
+          <div class="grid grid-cols-2 gap-3" v-if="workspaces.length > 1 || templates.length">
+            <div v-if="workspaces.length > 1">
+              <label class="label">{{ t("Workspace") }}</label>
+              <select v-model="form.workspace" class="input" @change="onWorkspaceChange">
+                <option v-for="w in workspaces" :key="w.name" :value="w.name">
+                  {{ w.icon }} {{ w.name }}
+                </option>
+              </select>
+            </div>
+            <div v-if="templates.length">
+              <label class="label">{{ t("Template") }}</label>
+              <select v-model="templateName" class="input" @change="applyTemplate">
+                <option value="">{{ t("No template") }}</option>
+                <option v-for="tp in templates" :key="tp.name" :value="tp.name">
+                  {{ tp.template_name }}{{ tp.checklist.length ? ` (☑${tp.checklist.length})` : "" }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -125,6 +136,7 @@ import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {
   TYPES, PRIORITIES, PORTALS, createTicket, assignableUsers, uploadAttachment,
+  listTemplates, createFromTemplate,
 } from "@/composables/useTickets";
 
 const ui = useUi();
@@ -136,6 +148,32 @@ const users = ref([]);
 const titleEl = ref(null);
 const fileEl = ref(null);
 const files = ref([]);
+const templates = ref([]);
+const templateName = ref("");
+
+async function loadTemplates() {
+  try {
+    templates.value = form.workspace ? await listTemplates(form.workspace) : [];
+  } catch {
+    templates.value = [];
+  }
+  if (!templates.value.find((tp) => tp.name === templateName.value)) templateName.value = "";
+}
+
+function onWorkspaceChange() {
+  templateName.value = "";
+  loadTemplates();
+}
+
+function applyTemplate() {
+  const tp = templates.value.find((x) => x.name === templateName.value);
+  if (!tp) return;
+  form.title = tp.title || tp.template_name;
+  form.description = tp.description || "";
+  form.ticket_type = tp.ticket_type || form.ticket_type;
+  form.priority = tp.priority || form.priority;
+  if (tp.default_assignee) form.assigned_to = tp.default_assignee;
+}
 
 function onPickFiles(e) {
   files.value.push(...Array.from(e.target.files || []));
@@ -177,6 +215,7 @@ watch(
           users.value = await assignableUsers("");
         } catch {}
       }
+      loadTemplates();
       await nextTick();
       titleEl.value?.focus();
     }
@@ -191,7 +230,16 @@ async function submit() {
   if (!form.title.trim() || saving.value) return;
   saving.value = true;
   try {
-    const res = await createTicket({ ...form });
+    // A picked template creates via the template API so its checklist rides along.
+    const res = templateName.value
+      ? await createFromTemplate({
+          template: templateName.value,
+          title: form.title,
+          description: form.description,
+          due_date: form.due_date || "",
+          assigned_to: form.assigned_to || "",
+        })
+      : await createTicket({ ...form });
     let failed = 0;
     for (const f of files.value) {
       try {

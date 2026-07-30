@@ -5,7 +5,19 @@
         Performance per department — resolution speed and SLA discipline, last
         <b>{{ days }}</b> days.
       </p>
-      <div class="flex items-center gap-1.5">
+      <div class="flex items-center gap-2">
+        <div class="inline-flex rounded-xl border border-ink-200 overflow-hidden">
+          <button
+            class="px-3 py-1.5 text-xs font-semibold transition"
+            :class="mode === 'departments' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+            @click="mode = 'departments'; selected = ''; load()"
+          >{{ t("Departments") }}</button>
+          <button
+            class="px-3 py-1.5 text-xs font-semibold transition"
+            :class="mode === 'workspaces' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+            @click="mode = 'workspaces'; selected = ''; load()"
+          >{{ t("Workspaces") }}</button>
+        </div>
         <button
           v-for="d in [7, 30, 90]"
           :key="d"
@@ -25,19 +37,19 @@
     <!-- department cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       <button
-        v-for="d in departments"
-        :key="d.department"
+        v-for="d in rows"
+        :key="d.key"
         class="card card-hover p-5 text-left"
-        :class="selected === d.department ? '!border-brand-400 ring-2 ring-brand-200' : ''"
-        @click="select(d.department)"
+        :class="selected === d.key ? '!border-brand-400 ring-2 ring-brand-200' : ''"
+        @click="select(d.key)"
       >
         <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <div class="text-sm font-bold text-ink-900 truncate">{{ shortDept(d.department) }}</div>
-            <div class="text-[11px] text-ink-400 mt-0.5">
-              {{ d.members }} {{ d.members === 1 ? "person" : "people" }}
-            </div>
+          <div class="min-w-0 flex items-center gap-2">
+            <span v-if="d.icon" class="w-7 h-7 rounded-lg grid place-items-center text-sm shrink-0"
+                  :style="{ background: (d.color || '#78716c') + '22' }">{{ d.icon }}</span>
+            <div class="text-sm font-bold text-ink-900 truncate">{{ d.key }}</div>
           </div>
+          <span class="text-[11px] text-ink-400 shrink-0">{{ d.members }} {{ t("people") }}</span>
           <span
             v-if="d.breached"
             class="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded shrink-0"
@@ -82,7 +94,7 @@
       </button>
     </div>
 
-    <p v-if="!departments.length && !loading" class="text-sm text-ink-400 text-center py-8">
+    <p v-if="!rows.length && !loading" class="text-sm text-ink-400 text-center py-8">
       No department activity yet.
     </p>
 
@@ -90,10 +102,10 @@
     <div v-if="selected" class="card overflow-hidden">
       <div class="flex items-center justify-between px-5 pt-5 pb-3 gap-3 flex-wrap">
         <h3 class="text-sm font-bold text-ink-900">
-          {{ shortDept(selected) }} — people ({{ days }}d)
+          {{ selected }} — {{ t("people") }} ({{ days }}d)
         </h3>
-        <button class="btn-outline !py-1.5 text-xs" @click="viewTickets(selected)">
-          View team tickets →
+        <button v-if="mode === 'departments'" class="btn-outline !py-1.5 text-xs" @click="viewTickets(selected)">
+          {{ t("View team tickets →") }}
         </button>
       </div>
       <div class="overflow-x-auto">
@@ -153,25 +165,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { getDepartmentScorecard, getEmployeeScorecard } from "@/composables/useTickets";
+import { useI18n } from "@/composables/useI18n";
+import {
+  getDepartmentScorecard, getEmployeeScorecard, getWorkspaceScorecard,
+} from "@/composables/useTickets";
 
 const router = useRouter();
+const { t } = useI18n();
+const mode = ref("departments");
 const loading = ref(true);
 const empLoading = ref(false);
 const error = ref("");
 const days = ref(30);
 const departments = ref([]);
+const wsRows = ref([]);
 const employees = ref([]);
 const selected = ref("");
+
+// One unified card shape for both modes.
+const rows = computed(() =>
+  mode.value === "workspaces"
+    ? wsRows.value.map((w) => ({ ...w, key: w.workspace }))
+    : departments.value.map((d) => ({ ...d, key: d.department }))
+);
 
 async function load() {
   loading.value = true;
   error.value = "";
   try {
-    const res = await getDepartmentScorecard(days.value);
-    departments.value = res.departments || [];
+    if (mode.value === "workspaces") {
+      const res = await getWorkspaceScorecard(days.value);
+      wsRows.value = res.workspaces || [];
+    } else {
+      const res = await getDepartmentScorecard(days.value);
+      departments.value = res.departments || [];
+    }
     if (selected.value) await loadEmployees(selected.value);
   } catch (e) {
     error.value = e.message || "Could not load scorecards";
@@ -188,7 +218,9 @@ async function select(dept) {
 async function loadEmployees(dept) {
   empLoading.value = true;
   try {
-    const res = await getEmployeeScorecard(days.value, dept);
+    const res = mode.value === "workspaces"
+      ? await getEmployeeScorecard(days.value, "", dept)
+      : await getEmployeeScorecard(days.value, dept);
     employees.value = res.employees || [];
   } catch (e) {
     error.value = e.message || "Could not load employees";

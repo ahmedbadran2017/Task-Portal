@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2026-07-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "workspace",
+  "col_1",
+  "ticket_type",
+  "priority",
+  "due_in_days",
+  "default_assignee",
+  "section_body",
+  "title",
+  "description",
+  "section_checklist",
+  "checklist"
+ ],
+ "fields": [
+  {"fieldname": "template_name", "fieldtype": "Data", "label": "Template Name", "reqd": 1, "unique": 1},
+  {"fieldname": "workspace", "fieldtype": "Link", "options": "Hub Workspace", "label": "Workspace", "reqd": 1},
+  {"fieldname": "col_1", "fieldtype": "Column Break"},
+  {"fieldname": "ticket_type", "fieldtype": "Select", "label": "Type", "options": "Task\nProblem\nRequest", "default": "Task"},
+  {"fieldname": "priority", "fieldtype": "Select", "label": "Priority", "options": "Urgent\nHigh\nMedium\nLow", "default": "Medium"},
+  {"fieldname": "due_in_days", "fieldtype": "Int", "label": "Due in (days)", "default": "0", "description": "0 = no due date; N = today + N days."},
+  {"fieldname": "default_assignee", "fieldtype": "Link", "options": "User", "label": "Default Assignee"},
+  {"fieldname": "section_body", "fieldtype": "Section Break", "label": "Ticket Body"},
+  {"fieldname": "title", "fieldtype": "Data", "label": "Ticket Title", "reqd": 1},
+  {"fieldname": "description", "fieldtype": "Small Text", "label": "Description"},
+  {"fieldname": "section_checklist", "fieldtype": "Section Break", "label": "Checklist"},
+  {"fieldname": "checklist", "fieldtype": "Table", "options": "Hub Ticket Checklist Item", "label": "Checklist Items"}
+ ],
+ "links": [],
+ "modified": "2026-07-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Task Template",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Admin", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Agent", "read": 1},
+  {"role": "Task Hub User", "read": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "template_name",
+ "track_changes": 1
+}

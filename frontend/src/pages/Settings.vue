@@ -350,6 +350,90 @@
       <p v-else class="text-xs text-ink-400">No rules yet.</p>
     </div>
 
+    <!-- task templates -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-bold text-ink-900">{{ t("Templates") }}</h3>
+        <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="startNewTpl">
+          + {{ t("Add template") }}
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mb-4">
+        One click in "New Ticket" turns a template into a ready task with its
+        checklist — e.g. a campaign kit for Marketing.
+      </p>
+
+      <div v-if="tplForm" class="border border-ink-200 rounded-xl p-4 mb-4 space-y-3 bg-ink-50/50">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">Name *</label>
+            <input v-model="tplForm.template_name" class="input" :disabled="!!tplForm.name" />
+          </div>
+          <div>
+            <label class="label">{{ t("Workspace") }}</label>
+            <select v-model="tplForm.workspace" class="input">
+              <option v-for="w in wsList" :key="w.name" :value="w.name">{{ w.icon }} {{ w.name }}</option>
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="label">{{ t("Title") }} *</label>
+            <input v-model="tplForm.title" class="input" />
+          </div>
+          <div>
+            <label class="label">{{ t("Type") }}</label>
+            <select v-model="tplForm.ticket_type" class="input">
+              <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">{{ t("Priority") }}</label>
+            <select v-model="tplForm.priority" class="input">
+              <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Due in (days, 0 = none)</label>
+            <input v-model.number="tplForm.due_in_days" type="number" min="0" max="365" class="input" />
+          </div>
+          <div>
+            <label class="label">{{ t("Assign To") }}</label>
+            <UserPicker v-model="tplForm.default_assignee" :users="users" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">{{ t("Description") }}</label>
+            <textarea v-model="tplForm.description" rows="2" class="input resize-none" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">{{ t("Checklist") }} (one item per line)</label>
+            <textarea v-model="tplForm.checklistText" rows="4" class="input resize-y"
+                      placeholder="Brief&#10;Design&#10;Copy&#10;Publish" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button class="btn-outline !py-1.5" @click="tplForm = null">{{ t("Cancel") }}</button>
+          <button class="btn-primary !py-1.5"
+                  :disabled="savingTpl || !tplForm.template_name.trim() || !tplForm.title.trim()"
+                  @click="saveTpl">{{ t("Save") }}</button>
+        </div>
+      </div>
+
+      <div v-if="tplList.length" class="divide-y divide-ink-100">
+        <div v-for="tp in tplList" :key="tp.name" class="py-3 flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-ink-800 truncate">{{ tp.template_name }}</div>
+            <div class="text-[11px] text-ink-400 truncate">
+              {{ tp.workspace }} · {{ t(tp.ticket_type) }} · {{ t(tp.priority) }}
+              <template v-if="tp.checklist.length"> · ☑ {{ tp.checklist.length }}</template>
+              <template v-if="tp.due_in_days"> · +{{ tp.due_in_days }}d</template>
+            </div>
+          </div>
+          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditTpl(tp)">✎</button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeTpl(tp)">✕</button>
+        </div>
+      </div>
+      <p v-else class="text-xs text-ink-400">No templates yet.</p>
+    </div>
+
     <div v-if="canEdit" class="flex justify-end gap-2">
       <button class="btn-outline" :disabled="saving" @click="load">{{ t("Reset") }}</button>
       <button class="btn-primary" :disabled="saving" @click="save">
@@ -368,6 +452,7 @@ import { useWorkspaces } from "@/composables/useWorkspaces";
 import {
   TYPES, PRIORITIES, PRIORITY_META, getSettings, updateSettings, whoami,
   assignableUsers, listRecurringRules, saveRecurringRule, deleteRecurringRule,
+  listTemplates, saveTemplate, deleteTemplate,
 } from "@/composables/useTickets";
 
 const toast = useToast();
@@ -435,6 +520,73 @@ async function removeWs(w) {
     toast.success("Workspace deleted");
   } catch (e) {
     toast.error(e.message || "Could not delete workspace");
+  }
+}
+
+// task templates
+const tplList = ref([]);
+const tplForm = ref(null);
+const savingTpl = ref(false);
+
+async function loadTemplatesList() {
+  try {
+    tplList.value = await listTemplates("");
+  } catch {}
+}
+
+function startNewTpl() {
+  tplForm.value = {
+    template_name: "",
+    workspace: (wsList.value.find((w) => !w.is_default) || wsList.value[0] || {}).name || "",
+    title: "",
+    description: "",
+    ticket_type: "Task",
+    priority: "Medium",
+    due_in_days: 0,
+    default_assignee: "",
+    checklistText: "",
+  };
+}
+
+function startEditTpl(tp) {
+  tplForm.value = {
+    name: tp.name,
+    template_name: tp.template_name,
+    workspace: tp.workspace,
+    title: tp.title,
+    description: tp.description || "",
+    ticket_type: tp.ticket_type || "Task",
+    priority: tp.priority || "Medium",
+    due_in_days: tp.due_in_days || 0,
+    default_assignee: tp.default_assignee || "",
+    checklistText: (tp.checklist || []).join("\n"),
+  };
+}
+
+async function saveTpl() {
+  savingTpl.value = true;
+  try {
+    const { checklistText, ...rest } = tplForm.value;
+    await saveTemplate({
+      ...rest,
+      checklist: checklistText.split("\n").map((x) => x.trim()).filter(Boolean),
+    });
+    tplForm.value = null;
+    await loadTemplatesList();
+    toast.success("Template saved");
+  } catch (e) {
+    toast.error(e.message || "Could not save template");
+  } finally {
+    savingTpl.value = false;
+  }
+}
+
+async function removeTpl(tp) {
+  try {
+    await deleteTemplate(tp.name);
+    tplList.value = tplList.value.filter((x) => x.name !== tp.name);
+  } catch (e) {
+    toast.error(e.message || "Could not delete template");
   }
 }
 
@@ -556,6 +708,7 @@ async function load() {
     Object.assign(form, s);
     canEdit.value = !!me.is_manager;
     loadRules();
+    loadTemplatesList();
     if (!users.value.length) assignableUsers("").then((u) => (users.value = u)).catch(() => {});
     if (!departments.value.length) listDepartments().then((d) => (departments.value = d)).catch(() => {});
   } catch (e) {

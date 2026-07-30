@@ -172,12 +172,35 @@ export function whoami() {
   return getMethod(`${M}.auth.whoami`);
 }
 
+export function getWorkspaceScorecard(days = 30) {
+  return getMethod(`${M}.scorecards.workspace_scorecard`, { days });
+}
+
+export function listTemplates(workspace = "") {
+  return getMethod(`${M}.templates.list_templates`, { workspace });
+}
+
+export function saveTemplate(tpl) {
+  return callMethod(`${M}.templates.save_template`, {
+    ...tpl,
+    checklist: tpl.checklist ? JSON.stringify(tpl.checklist) : undefined,
+  });
+}
+
+export function deleteTemplate(name) {
+  return callMethod(`${M}.templates.delete_template`, { name });
+}
+
+export function createFromTemplate(args) {
+  return callMethod(`${M}.templates.create_from_template`, args);
+}
+
 export function getDepartmentScorecard(days = 30) {
   return getMethod(`${M}.scorecards.department_scorecard`, { days });
 }
 
-export function getEmployeeScorecard(days = 30, department = "") {
-  return getMethod(`${M}.scorecards.employee_scorecard`, { days, department });
+export function getEmployeeScorecard(days = 30, department = "", workspace = "") {
+  return getMethod(`${M}.scorecards.employee_scorecard`, { days, department, workspace });
 }
 
 export function getSettings() {

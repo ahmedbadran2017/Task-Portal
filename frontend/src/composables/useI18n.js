@@ -164,6 +164,11 @@ const AR = {
   "Calendar": "التقويم",
   "Today": "اليوم",
   "No tickets with a due date this month.": "مفيش تذاكر بتاريخ استحقاق الشهر ده.",
+  "Template": "قالب",
+  "Templates": "القوالب",
+  "No template": "بدون قالب",
+  "Add template": "إضافة قالب",
+  "Departments": "الأقسام",
 };
 
 const locale = ref(localStorage.getItem("th_lang") || "en");
