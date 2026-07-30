@@ -1,6 +1,8 @@
 // Lightweight i18n: t() maps the English source string to the active locale.
 // Keys ARE the English strings, so untranslated text degrades gracefully.
 // Arabic flips the document to RTL (flex/grid handle mirroring natively).
+// Default locale = the user's ERPNext language (window.user_lang, injected by
+// the Jinja shell); an explicit in-app choice (localStorage) wins over it.
 import { ref } from "vue";
 
 const AR = {
@@ -121,7 +123,6 @@ const AR = {
   "Keep original": "خليني على نصي",
   "AI rewrite failed": "فشلت إعادة الصياغة",
   "Add a checklist item…": "أضف بند جديد…",
-  "SLA breached": "تخطت الـ SLA",
   "— Unassigned —": "— بدون مسؤول —",
   "Search by name…": "ابحث بالاسم…",
   "No one matches.": "مفيش حد مطابق.",
@@ -184,7 +185,210 @@ const AR = {
   "Loading scorecards…": "جاري تحميل الأداء…",
 };
 
-const locale = ref(localStorage.getItem("th_lang") || "en");
+const FR = {
+  // navigation & chrome
+  "Dashboard": "Tableau de bord",
+  "Board": "Kanban",
+  "All Tickets": "Tous les tickets",
+  "Tickets": "Tickets",
+  "Teams": "Équipes",
+  "Settings": "Paramètres",
+  "My Work": "Mon travail",
+  "Task Hub": "Centre des tâches",
+  "New Ticket": "Nouveau ticket",
+  "New": "Nouveau",
+  "Notifications": "Notifications",
+  "Mark all read": "Tout marquer comme lu",
+  "Nothing yet — you're all caught up 🎉": "Rien de nouveau — vous êtes à jour 🎉",
+
+  // statuses
+  "Open": "Ouvert",
+  "In Progress": "En cours",
+  "In Review": "En revue",
+  "Resolved": "Résolu",
+  "Closed": "Fermé",
+  "Cancelled": "Annulé",
+
+  // priorities & types
+  "Urgent": "Urgent",
+  "High": "Haute",
+  "Medium": "Moyenne",
+  "Low": "Basse",
+  "Task": "Tâche",
+  "Problem": "Problème",
+  "Request": "Demande",
+
+  // dashboard
+  "tickets in progress": "tickets en cours",
+  "SLA Breached": "SLA dépassé",
+  "past deadline": "délai dépassé",
+  "My Queue": "Ma file",
+  "assigned to me": "qui me sont assignés",
+  "Unassigned": "Non assignés",
+  "need an owner": "sans responsable",
+  "Open work by portal": "Travail ouvert par portail",
+  "Open by priority": "Ouverts par priorité",
+  "Everything, by status": "Tout, par statut",
+  "Created vs resolved — last 8 weeks": "Créés vs résolus — 8 dernières semaines",
+  "Portal health (30 days)": "Santé des portails (30 jours)",
+  "No open tickets — all clear": "Aucun ticket ouvert — tout est en ordre",
+  "Created": "Créés",
+  "Avg resolution": "Résolution moy.",
+
+  // board & list
+  "All portals": "Tous les portails",
+  "Any priority": "Toute priorité",
+  "Any status": "Tout statut",
+  "Any type": "Tout type",
+  "My tickets": "Mes tickets",
+  "SLA breached": "SLA dépassé",
+  "Refresh": "Actualiser",
+  "Nothing here": "Rien ici",
+  "Loading tickets…": "Chargement des tickets…",
+  "No tickets match.": "Aucun ticket ne correspond.",
+  "Search title or ID…": "Rechercher par titre ou ID…",
+  "Mine": "À moi",
+  "tickets": "tickets",
+  "Ticket": "Ticket",
+  "Portal": "Portail",
+  "Priority": "Priorité",
+  "Status": "Statut",
+  "Assignee": "Responsable",
+  "Updated": "Mis à jour",
+  "Breached": "Dépassé",
+  "Export CSV": "Exporter CSV",
+  "Prev": "Préc.",
+  "Next": "Suiv.",
+  "of": "sur",
+  "Department": "Département",
+  "Showing first {0} of {1} tickets — refine the filters.":
+    "Affichage des {0} premiers sur {1} tickets — affinez les filtres.",
+
+  // ticket card / drawer
+  "Title": "Titre",
+  "Type": "Type",
+  "Due Date": "Échéance",
+  "Due": "Échéance",
+  "Assign To": "Assigner à",
+  "Assigned To": "Responsable",
+  "Description": "Description",
+  "Attachments": "Pièces jointes",
+  "Add files": "Ajouter des fichiers",
+  "Add": "Ajouter",
+  "Comments": "Commentaires",
+  "Activity": "Activité",
+  "Checklist": "Checklist",
+  "Watch": "Suivre",
+  "Watching": "Suivi",
+  "Edit": "Modifier",
+  "Save": "Enregistrer",
+  "Cancel": "Annuler",
+  "Send": "Envoyer",
+  "Create Ticket": "Créer le ticket",
+  "Creating…": "Création…",
+  "Saving…": "Enregistrement…",
+  "Source Portal": "Portail source",
+  "Linked Record": "Enregistrement lié",
+  "Reported by": "Signalé par",
+  "SLA deadline": "Échéance SLA",
+  "No attachments.": "Aucune pièce jointe.",
+  "No comments yet.": "Aucun commentaire pour l'instant.",
+  "Write a comment… type @ to mention": "Écrire un commentaire… tapez @ pour mentionner",
+
+  // AI assist
+  "Rewrite in English": "Reformuler en anglais",
+  "Rewriting…": "Reformulation…",
+  "AI suggestion": "Suggestion IA",
+  "Use suggestion": "Utiliser la suggestion",
+  "Keep original": "Garder l'original",
+  "AI rewrite failed": "Échec de la reformulation",
+  "Add a checklist item…": "Ajouter un élément…",
+  "— Unassigned —": "— Non assigné —",
+  "Search by name…": "Rechercher par nom…",
+  "No one matches.": "Aucun résultat.",
+  "Short summary of the task or problem": "Résumé court de la tâche ou du problème",
+  "Add context, steps, links…": "Ajoutez contexte, étapes, liens…",
+
+  // teams
+  "Performance per department — resolution speed and SLA discipline, last":
+    "Performance par département — vitesse de résolution et respect du SLA, derniers",
+  "days.": "jours.",
+  "people": "personnes",
+  "person": "personne",
+  "Resolved (30d)": "Résolus (30 j)",
+  "Avg fix": "Résolution moy.",
+  "SLA on-time": "SLA à temps",
+  "View team tickets →": "Voir les tickets de l'équipe →",
+  "no data": "aucune donnée",
+  "No department activity yet.": "Aucune activité de département pour l'instant.",
+
+  // settings
+  "SLA budgets": "Budgets SLA",
+  "Defaults & behaviour": "Valeurs par défaut et comportement",
+  "Auto-tickets": "Tickets automatiques",
+  "Recurring tickets": "Tickets récurrents",
+  "Language": "Langue",
+  "Save Settings": "Enregistrer les paramètres",
+  "Reset": "Réinitialiser",
+  "Default type": "Type par défaut",
+  "Default priority": "Priorité par défaut",
+  "Who can be assigned tickets": "Qui peut être assigné aux tickets",
+  "Daily": "Quotidien",
+  "Weekly": "Hebdomadaire",
+  "Monthly": "Mensuel",
+  "Active": "Actif",
+  "Add rule": "Ajouter une règle",
+  "Delete": "Supprimer",
+  "hours": "heures",
+  "All workspaces": "Tous les espaces",
+  "Workspace": "Espace de travail",
+  "Workspaces": "Espaces de travail",
+  "open": "ouverts",
+  "Stage": "Étape",
+  "Add workspace": "Ajouter un espace",
+  "Stages (board columns)": "Étapes (colonnes du kanban)",
+  "Counts as": "Compte comme",
+  "SLA applies": "SLA actif",
+  "Members from department": "Membres du département",
+  "Calendar": "Calendrier",
+  "Today": "Aujourd'hui",
+  "No tickets with a due date this month.": "Aucun ticket avec une échéance ce mois-ci.",
+  "Template": "Modèle",
+  "Templates": "Modèles",
+  "No template": "Sans modèle",
+  "Add template": "Ajouter un modèle",
+  "Departments": "Départements",
+  "Person": "Personne",
+  "Open now": "Ouverts actuellement",
+  "Reported": "Signalés",
+  "Loading…": "Chargement…",
+  "Loading scorecards…": "Chargement des indicateurs…",
+};
+
+const DICTS = { ar: AR, fr: FR };
+
+// Shown in the header toggle + Settings, in display order.
+export const LOCALES = [
+  { code: "en", label: "EN", name: "English" },
+  { code: "ar", label: "ع", name: "العربية" },
+  { code: "fr", label: "FR", name: "Français" },
+];
+
+const KNOWN = ["en", "ar", "fr"];
+
+function normalize(l) {
+  l = String(l || "").toLowerCase().slice(0, 2);
+  return KNOWN.includes(l) ? l : "en";
+}
+
+function initialLocale() {
+  const saved = localStorage.getItem("th_lang");
+  if (saved && KNOWN.includes(saved)) return saved;
+  // No explicit choice yet — follow the user's ERPNext language.
+  return normalize(typeof window !== "undefined" ? window.user_lang : "");
+}
+
+const locale = ref(initialLocale());
 applyDir();
 
 function applyDir() {
@@ -196,7 +400,8 @@ function applyDir() {
 
 export function useI18n() {
   function t(s, ...args) {
-    let out = locale.value === "ar" ? AR[s] || s : s;
+    const dict = DICTS[locale.value];
+    let out = (dict && dict[s]) || s;
     args.forEach((a, i) => (out = out.replace(`{${i}}`, a)));
     return out;
   }
@@ -205,5 +410,5 @@ export function useI18n() {
     localStorage.setItem("th_lang", l);
     applyDir();
   }
-  return { t, locale, setLocale };
+  return { t, locale, setLocale, LOCALES };
 }

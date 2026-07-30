@@ -73,15 +73,17 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useI18n } from "@/composables/useI18n";
 
 const props = defineProps({ series: { type: Array, default: () => [] } });
+const { t } = useI18n();
 
 // Palette validated (dataviz six checks, light surface #fafaf9):
 // rust #d45d3e ↔ blue #3b82f6 — CVD ΔE 27.2, normal 32.0, contrast ≥3:1.
-const SERIES = [
-  { key: "created", label: "Created", color: "#d45d3e" },
-  { key: "resolved", label: "Resolved", color: "#3b82f6" },
-];
+const SERIES = computed(() => [
+  { key: "created", label: t("Created"), color: "#d45d3e" },
+  { key: "resolved", label: t("Resolved"), color: "#3b82f6" },
+]);
 
 const W = 640, H = 180;
 const PAD = { l: 30, r: 8, t: 8, b: 20 };

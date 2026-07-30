@@ -7,28 +7,28 @@
     <!-- KPI row — each tile jumps to the matching filtered view -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <StatTile
-        icon="◎" label="Open" :value="t.open" tone="#3b82f6" tint="#eff6ff"
-        hint="tickets in progress" @click="go('/board')"
+        icon="◎" :label="t('Open')" :value="kpi.open" tone="#3b82f6" tint="#eff6ff"
+        :hint="t('tickets in progress')" @click="go('/board')"
       />
       <StatTile
-        icon="⏰" label="SLA Breached" :value="t.breached" tone="#e11d48" tint="#fff1f2"
-        hint="past deadline" :pulse="t.breached > 0" @click="go('/tickets', { breached: 1 })"
+        icon="⏰" :label="t('SLA Breached')" :value="kpi.breached" tone="#e11d48" tint="#fff1f2"
+        :hint="t('past deadline')" :pulse="kpi.breached > 0" @click="go('/tickets', { breached: 1 })"
       />
       <StatTile
-        icon="◑" label="My Queue" :value="t.mine_open" tone="#7c3aed" tint="#f5f3ff"
-        hint="assigned to me" @click="go('/tickets', { mine: 1 })"
+        icon="◑" :label="t('My Queue')" :value="kpi.mine_open" tone="#7c3aed" tint="#f5f3ff"
+        :hint="t('assigned to me')" @click="go('/tickets', { mine: 1 })"
       />
       <StatTile
-        icon="○" label="Unassigned" :value="t.unassigned" tone="#d97706" tint="#fffbeb"
-        hint="need an owner" @click="go('/tickets', { unassigned: 1 })"
+        icon="○" :label="t('Unassigned')" :value="kpi.unassigned" tone="#d97706" tint="#fffbeb"
+        :hint="t('need an owner')" @click="go('/tickets', { unassigned: 1 })"
       />
     </div>
 
     <div class="grid lg:grid-cols-2 gap-4">
       <!-- by portal -->
       <div class="card p-5">
-        <h3 class="text-sm font-semibold text-ink-700 mb-4">Open work by portal</h3>
-        <div v-if="loading" class="text-sm text-ink-400">Loading…</div>
+        <h3 class="text-sm font-semibold text-ink-700 mb-4">{{ t("Open work by portal") }}</h3>
+        <div v-if="loading" class="text-sm text-ink-400">{{ t("Loading…") }}</div>
         <div v-else class="space-y-3">
           <BarRow
             v-for="row in byPortal"
@@ -41,20 +41,20 @@
           />
           <div v-if="!byPortal.length" class="text-center py-6">
             <div class="text-3xl mb-2">🎉</div>
-            <p class="text-sm text-ink-400">No open tickets — all clear</p>
+            <p class="text-sm text-ink-400">{{ t("No open tickets — all clear") }}</p>
           </div>
         </div>
       </div>
 
       <!-- by priority -->
       <div class="card p-5">
-        <h3 class="text-sm font-semibold text-ink-700 mb-4">Open by priority</h3>
-        <div v-if="loading" class="text-sm text-ink-400">Loading…</div>
+        <h3 class="text-sm font-semibold text-ink-700 mb-4">{{ t("Open by priority") }}</h3>
+        <div v-if="loading" class="text-sm text-ink-400">{{ t("Loading…") }}</div>
         <div v-else class="space-y-3">
           <BarRow
             v-for="p in PRIORITIES"
             :key="p"
-            :label="p"
+            :label="t(p)"
             :value="priorityCount(p)"
             :max="maxPriority"
             :color="PRIORITY_META[p].color"
@@ -66,22 +66,22 @@
     <!-- trends + roll-up -->
     <div class="card p-5">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold text-ink-700">Created vs resolved — last 8 weeks</h3>
+        <h3 class="text-sm font-semibold text-ink-700">{{ t("Created vs resolved — last 8 weeks") }}</h3>
       </div>
       <TrendChart :series="trends.series" />
     </div>
 
     <div v-if="trends.health.length" class="card overflow-hidden">
-      <h3 class="text-sm font-semibold text-ink-700 px-5 pt-5 pb-3">Portal health (30 days)</h3>
+      <h3 class="text-sm font-semibold text-ink-700 px-5 pt-5 pb-3">{{ t("Portal health (30 days)") }}</h3>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
-              <th class="px-5 py-2.5 font-semibold">Portal</th>
-              <th class="px-3 py-2.5 font-semibold">Open</th>
-              <th class="px-3 py-2.5 font-semibold">Breached</th>
-              <th class="px-3 py-2.5 font-semibold">Resolved (30d)</th>
-              <th class="px-5 py-2.5 font-semibold">Avg resolution</th>
+              <th class="px-5 py-2.5 font-semibold">{{ t("Portal") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Open") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Breached") }}</th>
+              <th class="px-3 py-2.5 font-semibold">{{ t("Resolved (30d)") }}</th>
+              <th class="px-5 py-2.5 font-semibold">{{ t("Avg resolution") }}</th>
             </tr>
           </thead>
           <tbody>
@@ -108,7 +108,7 @@
 
     <!-- status breakdown chips -->
     <div class="card p-5">
-      <h3 class="text-sm font-semibold text-ink-700 mb-4">Everything, by status</h3>
+      <h3 class="text-sm font-semibold text-ink-700 mb-4">{{ t("Everything, by status") }}</h3>
       <div class="flex flex-wrap gap-2">
         <button
           v-for="s in STATUSES"
@@ -117,7 +117,7 @@
           @click="go('/tickets', { status: s })"
         >
           <span class="w-2 h-2 rounded-full" :style="{ background: STATUS_META[s].color }" />
-          <span class="text-sm text-ink-700">{{ s }}</span>
+          <span class="text-sm text-ink-700">{{ t(s) }}</span>
           <span class="text-sm font-bold text-ink-900">{{ statusCount(s) }}</span>
         </button>
       </div>
@@ -130,11 +130,13 @@ import { ref, computed, onMounted, onUnmounted, watch, h } from "vue";
 import { useRouter } from "vue-router";
 import TrendChart from "@/components/TrendChart.vue";
 import { useUi } from "@/composables/useUi";
+import { useI18n } from "@/composables/useI18n";
 import {
   getSummary, getSettings, getTrends, PRIORITIES, STATUSES, PRIORITY_META, STATUS_META, PORTAL_META,
 } from "@/composables/useTickets";
 
 const ui = useUi();
+const { t } = useI18n();
 const router = useRouter();
 const loading = ref(true);
 const error = ref("");
@@ -142,7 +144,7 @@ const summary = ref({ totals: {}, by_portal: [], by_status: [], by_priority: [] 
 const trends = ref({ series: [], health: [] });
 let refreshTimer = null;
 
-const t = computed(() => ({
+const kpi = computed(() => ({
   open: summary.value.totals.open || 0,
   breached: summary.value.totals.breached || 0,
   mine_open: summary.value.totals.mine_open || 0,

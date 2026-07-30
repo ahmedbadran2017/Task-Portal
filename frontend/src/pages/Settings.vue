@@ -168,19 +168,18 @@
 
     <!-- language: personal, applies immediately, no save needed -->
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Language") }} / اللغة</h3>
-      <p class="text-xs text-ink-400 mb-4">Personal preference — stored on this device.</p>
+      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Language") }} / اللغة / Langue</h3>
+      <p class="text-xs text-ink-400 mb-4">
+        Personal preference — stored on this device. Defaults to your ERPNext user language.
+      </p>
       <div class="inline-flex rounded-xl border border-ink-200 overflow-hidden">
         <button
+          v-for="l in LOCALES"
+          :key="l.code"
           class="px-5 py-2 text-sm font-semibold transition"
-          :class="locale === 'en' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
-          @click="setLocale('en')"
-        >English</button>
-        <button
-          class="px-5 py-2 text-sm font-semibold transition"
-          :class="locale === 'ar' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
-          @click="setLocale('ar')"
-        >العربية</button>
+          :class="locale === l.code ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setLocale(l.code)"
+        >{{ l.name }}</button>
       </div>
     </div>
 
@@ -469,7 +468,7 @@ import {
 } from "@/composables/useTickets";
 
 const toast = useToast();
-const { t, locale, setLocale } = useI18n();
+const { t, locale, setLocale, LOCALES } = useI18n();
 const error = ref("");
 const saving = ref(false);
 const canEdit = ref(false);

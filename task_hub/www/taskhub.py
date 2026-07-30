@@ -45,6 +45,15 @@ def get_context(context):
         site_name = frappe.local.site or ""
     except Exception:
         site_name = ""
+    # The user's ERPNext language drives the SPA's default locale ("ar", "fr",
+    # "en" — regional variants collapse to their base). An explicit in-app
+    # choice (localStorage) still wins client-side.
+    try:
+        lang = (frappe.db.get_value("User", user, "language") or "en").lower()[:2]
+        if lang not in ("en", "ar", "fr"):
+            lang = "en"
+    except Exception:
+        lang = "en"
 
     context.portal_shell = {
         "csrf_token": csrf_token,
@@ -54,4 +63,5 @@ def get_context(context):
         "user_image": user_image,
         "user_roles": roles,
         "company": company,
+        "lang": lang,
     }

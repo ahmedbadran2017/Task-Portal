@@ -73,6 +73,19 @@
         </div>
 
         <div class="flex items-center gap-1.5">
+          <!-- language toggle — EN | ع | FR, follows the user's ERPNext language until changed -->
+          <div class="inline-flex rounded-lg border border-ink-200 overflow-hidden mr-1 rtl:mr-0 rtl:ml-1">
+            <button
+              v-for="l in LOCALES"
+              :key="l.code"
+              :title="l.name"
+              class="px-2 py-1 text-[11px] font-bold transition-colors"
+              :class="locale === l.code ? 'bg-brand-500 text-white' : 'bg-white text-ink-500 hover:bg-ink-50'"
+              @click="setLocale(l.code)"
+            >
+              {{ l.label }}
+            </button>
+          </div>
           <NotificationBell />
           <button class="btn-primary" @click="ui.openCreate()">
           <span class="text-base leading-none">+</span>
@@ -136,7 +149,7 @@ import { COMPANY } from "@/composables/useApi";
 
 const ui = useUi();
 const route = useRoute();
-const { t } = useI18n();
+const { t, locale, setLocale, LOCALES } = useI18n();
 
 // Served by Frappe from the app's public/ dir in production; the dev server
 // serves the copy in frontend/public/ instead (bound, not static-imported, so
