@@ -47,6 +47,7 @@ class HubTicket(Document):
         if not self.priority:
             self.priority = "Medium"
         self._sync_department()
+        self._sync_workspace()
         self._set_sla_deadline()
         self.append("activity", {
             "activity_on": now_datetime(),
@@ -87,6 +88,16 @@ class HubTicket(Document):
                 if before.status in CLOSED_STATES:
                     self.sla_warning_sent = 0
                     self.sla_breach_notified = 0
+            # Keep the workspace stage aligned when status is set directly
+            # (stage-driven moves set both explicitly via move_stage).
+            if not self.flags.get("stage_set_explicitly") and self.workspace:
+                try:
+                    from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
+                        stage_for_status)
+                    ws = frappe.get_cached_doc("Hub Workspace", self.workspace)
+                    self.stage = stage_for_status(ws, self.status)
+                except Exception:
+                    pass
 
         # Assignment transitions
         if (before.assigned_to or "") != (self.assigned_to or ""):
@@ -106,6 +117,25 @@ class HubTicket(Document):
         self._refresh_breach_flag()
 
     # -------------------------------------------------------------- helpers
+    def _sync_workspace(self):
+        """Every ticket lives in a workspace; strays land in the default one.
+        The stage defaults to the workspace stage matching the status."""
+        from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
+            ensure_default_workspace, stage_for_status)
+        if self.workspace and not frappe.db.exists("Hub Workspace", self.workspace):
+            self.workspace = None
+        if not self.workspace:
+            try:
+                self.workspace = ensure_default_workspace()
+            except Exception:
+                return
+        if not self.stage and self.workspace:
+            try:
+                ws = frappe.get_cached_doc("Hub Workspace", self.workspace)
+                self.stage = stage_for_status(ws, self.status or "Open")
+            except Exception:
+                pass
+
     def _sync_department(self):
         """Stamp the real ERPNext Department: an explicitly-set valid value
         wins, else the reporter's Employee department, else the portal's
@@ -123,7 +153,17 @@ class HubTicket(Document):
     def _set_sla_deadline(self, from_now=False):
         """On creation the clock starts at `creation`; a later re-price starts
         a fresh window from now — otherwise raising a 3-day-old ticket to
-        Urgent (4h budget) marks it breached instantly."""
+        Urgent (4h budget) marks it breached instantly. Workspaces can opt
+        out of SLA entirely (creative/planning flows)."""
+        if self.workspace:
+            try:
+                if not int(frappe.get_cached_doc(
+                        "Hub Workspace", self.workspace).use_sla or 0):
+                    self.sla_deadline = None
+                    self.sla_breached = 0
+                    return
+            except Exception:
+                pass
         hours = _sla_hours().get(self.priority or "Medium", 72)
         base = now_datetime() if from_now else (
             get_datetime(self.creation) if self.creation else now_datetime())

@@ -32,27 +32,31 @@
     </div>
 
     <!-- board: horizontal swipe on mobile, grid on desktop -->
-    <div class="board-scroll md:grid md:grid-cols-2 xl:grid-cols-4 md:gap-4">
+    <div
+      class="board-scroll md:grid md:gap-4"
+      :style="{ '--cols': columns.length }"
+      :class="columns.length > 4 ? 'md:grid-cols-3 xl:grid-cols-6' : 'md:grid-cols-2 xl:grid-cols-4'"
+    >
       <div
-        v-for="col in BOARD_COLUMNS"
-        :key="col"
+        v-for="col in columns"
+        :key="col.key"
         class="rounded-2xl p-3 flex flex-col min-h-[200px] border-t-[3px] transition-colors"
-        :style="{ borderTopColor: STATUS_META[col].color }"
-        :class="dropTarget === col ? 'bg-brand-50 ring-2 ring-brand-300' : 'bg-ink-100/60'"
-        @dragover.prevent="dropTarget = col"
-        @dragleave="dropTarget === col && (dropTarget = null)"
+        :style="{ borderTopColor: col.color }"
+        :class="dropTarget === col.key ? 'bg-brand-50 ring-2 ring-brand-300' : 'bg-ink-100/60'"
+        @dragover.prevent="dropTarget = col.key"
+        @dragleave="dropTarget === col.key && (dropTarget = null)"
         @drop="onDrop(col)"
       >
         <div class="flex items-center justify-between px-1 mb-3">
-          <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full" :style="{ background: STATUS_META[col].color }" />
-            <span class="text-sm font-semibold text-ink-700">{{ t(col) }}</span>
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2 h-2 rounded-full shrink-0" :style="{ background: col.color }" />
+            <span class="text-sm font-semibold text-ink-700 truncate">{{ col.label }}</span>
           </div>
           <span
-            class="text-xs font-bold rounded-full px-2 py-0.5"
-            :style="{ background: STATUS_META[col].bg, color: STATUS_META[col].color }"
+            class="text-xs font-bold rounded-full px-2 py-0.5 shrink-0"
+            :style="{ background: col.color + '22', color: col.color }"
           >
-            {{ grouped[col].length }}
+            {{ grouped[col.key]?.length || 0 }}
           </span>
         </div>
 
@@ -62,7 +66,7 @@
             <div class="skeleton h-24 opacity-70" />
           </template>
           <div
-            v-for="ticket in grouped[col]"
+            v-for="ticket in grouped[col.key] || []"
             :key="ticket.name"
             draggable="true"
             @dragstart="dragging = ticket"
@@ -70,12 +74,12 @@
           >
             <TicketCard
               :ticket="ticket"
-              :advance="nextColumn(col)"
+              :advance="nextColumnLabel(col)"
               @open="ui.openTicket"
-              @advance="advanceTicket"
+              @advance="advanceTicket(ticket, col)"
             />
           </div>
-          <p v-if="!grouped[col].length && !loading" class="text-xs text-ink-400 px-1 py-4 text-center">
+          <p v-if="!(grouped[col.key] || []).length && !loading" class="text-xs text-ink-400 px-1 py-4 text-center">
             {{ t("Nothing here") }}
           </p>
         </div>
@@ -93,6 +97,7 @@ import TicketCard from "@/components/TicketCard.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
+import { useWorkspaces } from "@/composables/useWorkspaces";
 import {
   BOARD_COLUMNS, PORTALS, PRIORITIES, STATUS_META, listTickets, updateStatus, getSettings,
 } from "@/composables/useTickets";
@@ -101,6 +106,8 @@ const ui = useUi();
 const toast = useToast();
 const route = useRoute();
 const { t } = useI18n();
+const { current: currentWsName, currentWs, moveStage } = useWorkspaces();
+
 const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
@@ -109,8 +116,6 @@ const dragging = ref(null);
 const dropTarget = ref(null);
 let refreshTimer = null;
 
-// "priority asc" on the server is alphabetical (High < Low < Medium < Urgent),
-// which is meaningless — rank client-side instead.
 const PRIORITY_RANK = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
 
 const filters = reactive({
@@ -120,13 +125,42 @@ const filters = reactive({
   breached_only: false,
 });
 
-const grouped = computed(() => {
-  const g = Object.fromEntries(BOARD_COLUMNS.map((c) => [c, []]));
-  for (const t of tickets.value) {
-    if (g[t.status]) g[t.status].push(t);
+// Columns: the workspace's own stages, or the canonical statuses in All mode.
+const columns = computed(() => {
+  if (currentWs.value?.stages?.length) {
+    return currentWs.value.stages.map((s) => ({
+      key: s.stage_name,
+      label: t(s.stage_name),
+      color: s.color || "#78716c",
+      maps_to: s.maps_to,
+      mode: "stage",
+    }));
   }
-  for (const c of BOARD_COLUMNS) {
-    g[c].sort(
+  return BOARD_COLUMNS.map((s) => ({
+    key: s,
+    label: t(s),
+    color: STATUS_META[s].color,
+    maps_to: s,
+    mode: "status",
+  }));
+});
+
+const grouped = computed(() => {
+  const g = Object.fromEntries(columns.value.map((c) => [c.key, []]));
+  const stageMode = !!currentWs.value?.stages?.length;
+  for (const tk of tickets.value) {
+    let key;
+    if (stageMode) {
+      key = g[tk.stage] !== undefined ? tk.stage
+        // Unknown stage (renamed?) — fall back to the column matching status.
+        : columns.value.find((c) => c.maps_to === tk.status)?.key;
+    } else {
+      key = tk.status;
+    }
+    if (key && g[key]) g[key].push(tk);
+  }
+  for (const c of columns.value) {
+    g[c.key].sort(
       (a, b) =>
         (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) ||
         (a.sla_deadline || "z").localeCompare(b.sla_deadline || "z")
@@ -142,14 +176,18 @@ async function load() {
     const res = await listTickets({
       source_portal: filters.source_portal || undefined,
       priority: filters.priority || undefined,
+      workspace: currentWsName.value || undefined,
       mine: filters.mine ? 1 : 0,
       breached_only: filters.breached_only ? 1 : 0,
-      status: undefined,
       limit: 300,
       order_by: "modified desc",
     });
-    // Only board columns; terminal states (Closed/Cancelled) live in the list view.
-    tickets.value = (res.tickets || []).filter((tk) => BOARD_COLUMNS.includes(tk.status));
+    const all = res.tickets || [];
+    // All-mode keeps the classic four columns; a workspace shows every stage,
+    // including its done/cancelled ones.
+    tickets.value = currentWs.value
+      ? all
+      : all.filter((tk) => BOARD_COLUMNS.includes(tk.status));
     total.value = res.total || 0;
   } catch (e) {
     error.value = e.message || "Could not load tickets";
@@ -158,41 +196,40 @@ async function load() {
   }
 }
 
+async function moveTo(tk, col) {
+  const prevStage = tk.stage, prevStatus = tk.status;
+  tk.stage = col.mode === "stage" ? col.key : tk.stage;
+  tk.status = col.maps_to;
+  try {
+    if (col.mode === "stage") await moveStage(tk.name, col.key);
+    else await updateStatus(tk.name, col.key);
+    toast.success(`${tk.name} → ${col.label}`);
+    ui.bump();
+  } catch (e) {
+    tk.stage = prevStage;
+    tk.status = prevStatus;
+    toast.error(e.message || "Could not move ticket");
+  }
+}
+
 async function onDrop(col) {
   dropTarget.value = null;
-  const t = dragging.value;
+  const tk = dragging.value;
   dragging.value = null;
-  if (!t || t.status === col) return;
-  const prev = t.status;
-  t.status = col; // optimistic
-  try {
-    await updateStatus(t.name, col);
-    toast.success(`${t.name} → ${col}`);
-    ui.bump();
-  } catch (e) {
-    t.status = prev; // rollback
-    toast.error(e.message || "Could not move ticket");
-  }
+  if (!tk) return;
+  const already = col.mode === "stage" ? tk.stage === col.key : tk.status === col.key;
+  if (!already) await moveTo(tk, col);
 }
 
-function nextColumn(col) {
-  const i = BOARD_COLUMNS.indexOf(col);
-  return i >= 0 && i < BOARD_COLUMNS.length - 1 ? BOARD_COLUMNS[i + 1] : "";
+function nextColumnLabel(col) {
+  const i = columns.value.findIndex((c) => c.key === col.key);
+  return i >= 0 && i < columns.value.length - 1 ? columns.value[i + 1].label : "";
 }
 
-async function advanceTicket(tk) {
-  const next = nextColumn(tk.status);
-  if (!next) return;
-  const prev = tk.status;
-  tk.status = next;
-  try {
-    await updateStatus(tk.name, next);
-    toast.success(`${tk.name} → ${next}`);
-    ui.bump();
-  } catch (e) {
-    tk.status = prev;
-    toast.error(e.message || "Could not move ticket");
-  }
+async function advanceTicket(tk, col) {
+  const i = columns.value.findIndex((c) => c.key === col.key);
+  if (i < 0 || i >= columns.value.length - 1) return;
+  await moveTo(tk, columns.value[i + 1]);
 }
 
 onMounted(async () => {
@@ -206,4 +243,5 @@ onMounted(async () => {
 });
 onUnmounted(() => refreshTimer && clearInterval(refreshTimer));
 watch(() => ui.state.rev, load);
+watch(currentWsName, load);
 </script>

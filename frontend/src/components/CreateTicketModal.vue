@@ -38,6 +38,15 @@
             </div>
           </div>
 
+          <div v-if="workspaces.length > 1">
+            <label class="label">{{ t("Workspace") }}</label>
+            <select v-model="form.workspace" class="input">
+              <option v-for="w in workspaces" :key="w.name" :value="w.name">
+                {{ w.icon }} {{ w.name }}
+              </option>
+            </select>
+          </div>
+
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="label">Source Portal</label>
@@ -110,6 +119,8 @@
 <script setup>
 import { reactive, ref, watch, nextTick } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
+import { useWorkspaces } from "@/composables/useWorkspaces";
+import { useI18n } from "@/composables/useI18n";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import {
@@ -118,6 +129,8 @@ import {
 
 const ui = useUi();
 const toast = useToast();
+const { t } = useI18n();
+const { workspaces, current: currentWsName } = useWorkspaces();
 const saving = ref(false);
 const users = ref([]);
 const titleEl = ref(null);
@@ -131,6 +144,7 @@ function onPickFiles(e) {
 
 const blank = () => ({
   title: "",
+  workspace: "",
   ticket_type: "Task",
   priority: "Medium",
   source_portal: "Other",
@@ -151,6 +165,13 @@ watch(
     if (open) {
       Object.assign(form, blank(), ui.state.createPreset || {});
       files.value = [];
+      // Default to the active workspace (or the system default).
+      if (!form.workspace) {
+        form.workspace =
+          currentWsName.value ||
+          (workspaces.value.find((w) => w.is_default) || workspaces.value[0] || {}).name ||
+          "";
+      }
       if (!users.value.length) {
         try {
           users.value = await assignableUsers("");

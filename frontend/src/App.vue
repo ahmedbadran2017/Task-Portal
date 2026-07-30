@@ -11,6 +11,10 @@
         </div>
       </div>
 
+      <div class="px-3 pt-3">
+        <WorkspaceSwitcher />
+      </div>
+
       <nav class="flex-1 px-3 py-4 space-y-1">
         <router-link
           v-for="item in nav"
@@ -77,6 +81,9 @@
       </header>
 
       <main class="flex-1 p-4 sm:p-6 pb-24 md:pb-6">
+        <div class="md:hidden mb-3">
+          <WorkspaceSwitcher />
+        </div>
         <router-view />
       </main>
 
@@ -112,6 +119,7 @@ import TicketDrawer from "@/components/TicketDrawer.vue";
 import Toaster from "@/components/Toaster.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
+import WorkspaceSwitcher from "@/components/WorkspaceSwitcher.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
 import { COMPANY } from "@/composables/useApi";

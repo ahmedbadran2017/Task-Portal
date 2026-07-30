@@ -224,10 +224,26 @@
 
             <!-- sidebar -->
             <div class="px-5 py-5 md:border-l border-t md:border-t-0 border-ink-100 bg-ink-50/60 rounded-b-2xl md:rounded-bl-none md:rounded-r-2xl space-y-4">
-              <div>
+              <div v-if="ticketStages.length">
+                <label class="label">{{ t("Stage") }}</label>
+                <select :value="data.ticket.stage" class="input" :disabled="busy" @change="onStage($event.target.value)">
+                  <option v-for="s in ticketStages" :key="s.stage_name" :value="s.stage_name">
+                    {{ t(s.stage_name) }}
+                  </option>
+                </select>
+              </div>
+              <div v-else>
                 <label class="label">{{ t("Status") }}</label>
                 <select :value="data.ticket.status" class="input" :disabled="busy" @change="onStatus($event.target.value)">
                   <option v-for="s in STATUSES" :key="s" :value="s">{{ t(s) }}</option>
+                </select>
+              </div>
+              <div v-if="workspaces.length > 1">
+                <label class="label">{{ t("Workspace") }}</label>
+                <select :value="data.ticket.workspace" class="input" :disabled="busy" @change="onWorkspace($event.target.value)">
+                  <option v-for="w in workspaces" :key="w.name" :value="w.name">
+                    {{ w.icon }} {{ w.name }}
+                  </option>
                 </select>
               </div>
               <div>
@@ -282,6 +298,7 @@ import UserPicker from "./UserPicker.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
+import { useWorkspaces } from "@/composables/useWorkspaces";
 import {
   STATUSES, PRIORITIES, PORTAL_META, getTicket, updateStatus, setPriority,
   assignTicket, addComment, assignableUsers, updateTicket, watchTicket,
@@ -300,6 +317,7 @@ Meta.props = ["label", "value"];
 const ui = useUi();
 const toast = useToast();
 const { t } = useI18n();
+const { workspaces, moveStage, setTicketWorkspace } = useWorkspaces();
 const data = ref(null);
 const users = ref([]);
 const comment = ref("");
@@ -343,6 +361,11 @@ function insertMention(u) {
     "@" + u.name.split("@")[0] + " "
   );
 }
+
+const ticketStages = computed(() => {
+  const ws = workspaces.value.find((w) => w.name === data.value?.ticket?.workspace);
+  return ws?.stages || [];
+});
 
 const portalMeta = computed(
   () => PORTAL_META[data.value?.ticket?.source_portal] || PORTAL_META.Other
@@ -424,6 +447,12 @@ async function onChecklistRemove(c) {
 
 async function onStatus(status) {
   await run(() => updateStatus(data.value.ticket.name, status), "Status updated");
+}
+async function onStage(stage) {
+  await run(() => moveStage(data.value.ticket.name, stage), "Stage updated");
+}
+async function onWorkspace(ws) {
+  await run(() => setTicketWorkspace(data.value.ticket.name, ws), "Workspace updated");
 }
 async function onPriority(priority) {
   await run(() => setPriority(data.value.ticket.name, priority), "Priority updated");

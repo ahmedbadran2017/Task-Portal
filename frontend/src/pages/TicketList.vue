@@ -145,6 +145,7 @@ import { useRoute } from "vue-router";
 import Pill from "@/components/Pill.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
+import { useWorkspaces } from "@/composables/useWorkspaces";
 import {
   STATUSES, PORTALS, PRIORITIES, TYPES, PRIORITY_META, STATUS_META, PORTAL_META,
   listTickets,
@@ -153,6 +154,7 @@ import { relTime } from "@/composables/useApi";
 
 const ui = useUi();
 const { t } = useI18n();
+const { current: currentWsName } = useWorkspaces();
 const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
@@ -199,6 +201,7 @@ async function load() {
   try {
     const res = await listTickets({
       ...cleaned(),
+      workspace: currentWsName.value || undefined,
       limit,
       start: start.value,
       order_by: "modified desc",

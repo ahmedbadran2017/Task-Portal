@@ -151,6 +151,16 @@ const AR = {
   "Add rule": "إضافة قاعدة",
   "Delete": "حذف",
   "hours": "ساعة",
+  "All workspaces": "كل المساحات",
+  "Workspace": "مساحة العمل",
+  "Workspaces": "مساحات العمل",
+  "open": "مفتوحة",
+  "Stage": "المرحلة",
+  "Add workspace": "إضافة مساحة",
+  "Stages (board columns)": "المراحل (أعمدة اللوحة)",
+  "Counts as": "تُحسب كـ",
+  "SLA applies": "الـ SLA مفعّل",
+  "Members from department": "الأعضاء من قسم",
 };
 
 const locale = ref(localStorage.getItem("th_lang") || "en");

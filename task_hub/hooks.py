@@ -17,6 +17,7 @@ website_route_rules = [
 after_install = "task_hub.install.after_install"
 after_migrate = [
     "task_hub.install._create_portal_roles",
+    "task_hub.install._ensure_default_workspace",
 ]
 
 # Hub Ticket lifecycle (SLA, activity log, status stamps) lives in the DocType

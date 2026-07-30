@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "autoname": "field:workspace_name",
+ "creation": "2026-07-30 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "workspace_name",
+  "icon",
+  "color",
+  "col_1",
+  "department",
+  "extra_members",
+  "use_sla",
+  "is_default",
+  "section_stages",
+  "stages"
+ ],
+ "fields": [
+  {"fieldname": "workspace_name", "fieldtype": "Data", "label": "Workspace Name", "reqd": 1, "unique": 1},
+  {"fieldname": "icon", "fieldtype": "Data", "label": "Icon (emoji)", "default": "🗂️"},
+  {"fieldname": "color", "fieldtype": "Data", "label": "Color (hex)", "default": "#d45d3e"},
+  {"fieldname": "col_1", "fieldtype": "Column Break"},
+  {"fieldname": "department", "fieldtype": "Link", "options": "Department", "label": "Department", "description": "Members come from this department's active employees."},
+  {"fieldname": "extra_members", "fieldtype": "Small Text", "label": "Extra Members", "description": "Comma-separated user IDs added on top of the department."},
+  {"fieldname": "use_sla", "fieldtype": "Check", "label": "SLA applies", "default": "1", "description": "Off for creative/planning flows where deadlines are per-task, not per-priority."},
+  {"fieldname": "is_default", "fieldtype": "Check", "label": "Default Workspace", "read_only": 1},
+  {"fieldname": "section_stages", "fieldtype": "Section Break", "label": "Stages (board columns, in order)"},
+  {"fieldname": "stages", "fieldtype": "Table", "options": "Hub Workspace Stage", "label": "Stages"}
+ ],
+ "links": [],
+ "modified": "2026-07-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Workspace",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Admin", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Manager", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Task Hub Agent", "read": 1},
+  {"role": "Task Hub User", "read": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "workspace_name",
+ "track_changes": 1
+}

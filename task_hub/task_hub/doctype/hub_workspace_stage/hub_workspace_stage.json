@@ -1,0 +1,27 @@
+{
+ "actions": [],
+ "creation": "2026-07-30 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["stage_name", "maps_to", "color"],
+ "fields": [
+  {"fieldname": "stage_name", "fieldtype": "Data", "label": "Stage", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "maps_to", "fieldtype": "Select", "label": "Counts As",
+   "options": "Open\nIn Progress\nIn Review\nResolved\nClosed\nCancelled",
+   "default": "Open", "reqd": 1, "in_list_view": 1,
+   "description": "The canonical status this stage represents — keeps SLA, scorecards and digests working across custom flows."},
+  {"fieldname": "color", "fieldtype": "Data", "label": "Color (hex)", "in_list_view": 1}
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-07-30 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Workspace Stage",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

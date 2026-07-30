@@ -23,6 +23,7 @@ LIST_FIELDS = [
     "source_portal", "department", "reported_by", "assigned_to",
     "due_date", "sla_deadline", "sla_breached", "resolved_on",
     "linked_label", "linked_url", "creation", "modified",
+    "workspace", "stage",
 ]
 
 
@@ -81,6 +82,9 @@ def create_ticket(**kwargs):
     doc.linked_name = data.get("linked_name") or None
     doc.linked_label = data.get("linked_label") or None
     doc.linked_url = data.get("linked_url") or None
+    ws = data.get("workspace")
+    if ws and frappe.db.exists("Hub Workspace", ws):
+        doc.workspace = ws
     doc.insert(ignore_permissions=True)
 
     frappe.db.commit()
@@ -91,8 +95,8 @@ def create_ticket(**kwargs):
 @frappe.whitelist()
 def list_tickets(status=None, priority=None, source_portal=None,
                  assigned_to=None, reported_by=None, ticket_type=None,
-                 department=None, search=None, breached_only=0, mine=0,
-                 unassigned=0, limit=100, start=0, order_by="modified desc"):
+                 department=None, workspace=None, search=None, breached_only=0,
+                 mine=0, unassigned=0, limit=100, start=0, order_by="modified desc"):
     """Filtered ticket list for the Hub board / list views."""
     gate_read()
     filters = {}
@@ -100,6 +104,8 @@ def list_tickets(status=None, priority=None, source_portal=None,
         filters["status"] = status
     if department:
         filters["department"] = department
+    if workspace:
+        filters["workspace"] = workspace
     if int(unassigned or 0):
         filters["assigned_to"] = ["in", (None, "")]
     if priority:
