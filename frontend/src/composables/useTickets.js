@@ -172,6 +172,10 @@ export function whoami() {
   return getMethod(`${M}.auth.whoami`);
 }
 
+export function polishDescription(text) {
+  return callMethod(`${M}.ai.polish_description`, { text });
+}
+
 export function getWorkspaceScorecard(days = 30) {
   return getMethod(`${M}.scorecards.workspace_scorecard`, { days });
 }

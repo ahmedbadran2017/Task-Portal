@@ -25,6 +25,8 @@
   "auto_item_content",
   "item_content_days",
   "max_auto_tickets_per_run",
+  "section_ai",
+  "ai_polish",
   "section_notifications",
   "notify_on_assignment",
   "notify_sla",
@@ -56,6 +58,9 @@
   {"fieldname": "auto_item_content", "fieldtype": "Check", "label": "New Items missing content → Content ticket", "default": "0"},
   {"fieldname": "item_content_days", "fieldtype": "Int", "label": "Scan items created in the last (days)", "default": "7"},
   {"fieldname": "max_auto_tickets_per_run", "fieldtype": "Int", "label": "Max auto-tickets per run", "default": "20"},
+
+  {"fieldname": "section_ai", "fieldtype": "Section Break", "label": "AI Assist"},
+  {"fieldname": "ai_polish", "fieldtype": "Check", "label": "AI description rewrite (any language → English)", "default": "1"},
 
   {"fieldname": "section_notifications", "fieldtype": "Section Break", "label": "Notifications"},
   {"fieldname": "notify_on_assignment", "fieldtype": "Check", "label": "Email assignee on assignment", "default": "1"},

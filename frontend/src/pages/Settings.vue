@@ -123,6 +123,19 @@
     </div>
 
     <div class="card p-6">
+      <h3 class="text-sm font-bold text-ink-900 mb-5">AI Assist</h3>
+      <div class="flex items-center justify-between gap-4">
+        <label class="text-sm text-ink-700">
+          ✨ AI description rewrite — write in any language, get a clean English version
+          <span class="block text-[11px] text-ink-400">
+            uses the Anthropic key configured on the site (site_config); the button hides itself when no key is set
+          </span>
+        </label>
+        <Toggle v-model="form.ai_polish" :disabled="!canEdit" />
+      </div>
+    </div>
+
+    <div class="card p-6">
       <h3 class="text-sm font-bold text-ink-900 mb-5">Notifications</h3>
       <div class="space-y-4">
         <div class="flex items-center justify-between gap-4">
@@ -665,6 +678,7 @@ const form = reactive({
   weekly_digest: 0,
   digest_recipients: "",
   assignee_scope: "Employees only",
+  ai_polish: 1,
 });
 
 // Minimal styled switch — checkbox semantics, house colors.

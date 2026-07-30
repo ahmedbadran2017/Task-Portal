@@ -112,6 +112,14 @@ const AR = {
   "No attachments.": "مفيش مرفقات.",
   "No comments yet.": "مفيش تعليقات لسه.",
   "Write a comment… type @ to mention": "اكتب تعليق… اكتب @ لعمل mention",
+
+  // AI assist
+  "Rewrite in English": "إعادة صياغة بالإنجليزية",
+  "Rewriting…": "جاري إعادة الصياغة…",
+  "AI suggestion": "اقتراح الذكاء الاصطناعي",
+  "Use suggestion": "استخدم الاقتراح",
+  "Keep original": "خليني على نصي",
+  "AI rewrite failed": "فشلت إعادة الصياغة",
   "Add a checklist item…": "أضف بند جديد…",
   "SLA breached": "تخطت الـ SLA",
   "— Unassigned —": "— بدون مسؤول —",

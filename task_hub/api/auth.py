@@ -9,6 +9,7 @@ def whoami():
     """Return the signed-in user's identity + hub capabilities for the SPA shell."""
     gate_read()
     from task_hub.task_hub.doctype.hub_ticket.hub_ticket import resolve_user_department
+    from task_hub.api.ai import is_enabled as ai_enabled
 
     user = frappe.session.user
     roles = list(frappe.get_roles(user))
@@ -21,6 +22,7 @@ def whoami():
         "is_hub_member": bool(set(roles) & HUB_ROLES) or user == "Administrator",
         "company": frappe.defaults.get_user_default("Company") or "Justyol Morocco",
         "department": resolve_user_department(user),
+        "ai_polish": ai_enabled(),
     }
 
 

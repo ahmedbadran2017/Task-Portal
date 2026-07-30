@@ -84,6 +84,7 @@
               class="input resize-none"
               :placeholder="t('Add context, steps, links…')"
             />
+            <AiPolish :text="form.description" @apply="form.description = $event" />
           </div>
 
           <div>
@@ -130,6 +131,7 @@
 <script setup>
 import { reactive, ref, watch, nextTick } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
+import AiPolish from "@/components/AiPolish.vue";
 import { useWorkspaces } from "@/composables/useWorkspaces";
 import { useI18n } from "@/composables/useI18n";
 import { useUi } from "@/composables/useUi";

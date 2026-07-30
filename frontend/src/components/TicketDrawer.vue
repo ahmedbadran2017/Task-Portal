@@ -55,6 +55,7 @@
                 <div>
                   <label class="label">{{ t("Description") }}</label>
                   <textarea v-model="edit.description" rows="5" class="input resize-y" />
+                  <AiPolish :text="edit.description" @apply="edit.description = $event" />
                 </div>
                 <div class="w-44">
                   <label class="label">{{ t("Due Date") }}</label>
@@ -295,6 +296,7 @@
 import { ref, reactive, computed, watch, h } from "vue";
 import Pill from "./Pill.vue";
 import UserPicker from "./UserPicker.vue";
+import AiPolish from "./AiPolish.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
