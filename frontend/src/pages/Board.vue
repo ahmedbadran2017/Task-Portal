@@ -19,8 +19,24 @@
         {{ t("SLA breached") }}
       </label>
       <div class="flex-1" />
-      <button class="btn-outline" @click="load">↻ {{ t("Refresh") }}</button>
+      <div class="inline-flex rounded-xl border border-ink-200 overflow-hidden">
+        <button
+          class="px-3 py-2 text-xs font-semibold transition"
+          :class="view === 'board' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setView('board')"
+        >▦ {{ t("Board") }}</button>
+        <button
+          class="px-3 py-2 text-xs font-semibold transition"
+          :class="view === 'calendar' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setView('calendar')"
+        >📅 {{ t("Calendar") }}</button>
+      </div>
+      <button v-if="view === 'board'" class="btn-outline" @click="load">↻ {{ t("Refresh") }}</button>
     </div>
+
+    <CalendarView v-if="view === 'calendar'" />
+
+    <template v-if="view === 'board'">
 
     <div v-if="error" class="card p-4 text-sm text-rose-600 bg-rose-50 border-rose-200">
       {{ error }}
@@ -87,6 +103,7 @@
     </div>
 
     <p v-if="loading" class="text-sm text-ink-400 text-center py-4">{{ t("Loading tickets…") }}</p>
+    </template>
   </div>
 </template>
 
@@ -94,6 +111,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import TicketCard from "@/components/TicketCard.vue";
+import CalendarView from "@/components/CalendarView.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
@@ -107,6 +125,12 @@ const toast = useToast();
 const route = useRoute();
 const { t } = useI18n();
 const { current: currentWsName, currentWs, moveStage } = useWorkspaces();
+
+const view = ref(localStorage.getItem("th_view") || "board");
+function setView(v) {
+  view.value = v;
+  localStorage.setItem("th_view", v);
+}
 
 const loading = ref(true);
 const error = ref("");

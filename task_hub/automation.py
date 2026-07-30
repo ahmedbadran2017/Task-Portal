@@ -68,7 +68,9 @@ def run_auto_rules():
     if cint(s.auto_overdue_invoices):
         budget -= _detect_overdue_invoices(s, budget)
     if budget > 0 and cint(s.auto_stuck_orders):
-        _detect_stuck_orders(s, budget)
+        budget -= _detect_stuck_orders(s, budget)
+    if budget > 0 and cint(s.auto_item_content):
+        _detect_items_missing_content(s, budget)
 
 
 def _open_auto_ticket_exists(linked_doctype, linked_name):
@@ -163,6 +165,65 @@ def _detect_stuck_orders(s, budget):
             linked_name=r.name,
             linked_label=r.name,
             linked_url=f"/app/sales-order/{r.name}",
+        )
+        created += 1
+    if created:
+        frappe.db.commit()
+    return created
+
+
+def _content_workspace():
+    """The workspace whose department is the content team (Ecommerce - ML),
+    found dynamically so renaming/re-owning it in Settings just works."""
+    ws = frappe.db.get_value("Hub Workspace", {"department": "Ecommerce - ML"})
+    return ws  # None → ticket lands in the default workspace
+
+
+def _detect_items_missing_content(s, budget):
+    """New Items with no image or no description → one Task each for the
+    content team. Fires once per item, ever — resolving the ticket without
+    fixing the item must not resurrect it daily."""
+    days = cint(s.item_content_days) or 7
+    since = add_days(nowdate(), -days)
+    rows = frappe.db.sql(
+        """SELECT name, item_name, item_code, image, description
+           FROM `tabItem`
+           WHERE disabled = 0 AND creation >= %s
+             AND (image IS NULL OR image = ''
+                  OR description IS NULL OR description = ''
+                  OR CHAR_LENGTH(description) < 20)
+           ORDER BY creation DESC""",
+        (since,), as_dict=True,
+    )
+    workspace = _content_workspace()
+    created = 0
+    for r in rows:
+        if created >= budget:
+            break
+        # once-ever dedupe: any auto ticket for this Item, open or closed
+        if frappe.db.exists("Hub Ticket", {
+                "linked_doctype": "Item", "linked_name": r.name,
+                "auto_generated": 1}):
+            continue
+        missing = []
+        if not r.image:
+            missing.append("image")
+        if not r.description or len(r.description or "") < 20:
+            missing.append("description")
+        _make_auto_ticket(
+            title=f"Add content: {r.item_name or r.item_code}",
+            description=(
+                f"Item <b>{r.item_code}</b> is missing: "
+                f"<b>{', '.join(missing)}</b>. Complete the listing content."
+            ),
+            ticket_type="Task",
+            priority="Medium",
+            source_portal="Website",
+            workspace=workspace,
+            linked_doctype="Item",
+            linked_name=r.name,
+            linked_label=r.item_code or r.name,
+            linked_url=f"/app/item/{r.name}",
         )
         created += 1
     if created:

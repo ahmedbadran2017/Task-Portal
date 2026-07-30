@@ -106,6 +106,16 @@
           </div>
         </div>
         <div class="flex items-center justify-between gap-4">
+          <label class="text-sm text-ink-700">
+            New Items missing content → <b>Content</b> ticket
+            <span class="block text-[11px] text-ink-400">scans items created in the last N days for missing image/description:</span>
+          </label>
+          <div class="flex items-center gap-2 shrink-0">
+            <input v-model.number="form.item_content_days" type="number" min="1" class="input !w-20" :disabled="!canEdit" />
+            <Toggle v-model="form.auto_item_content" :disabled="!canEdit" />
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-4">
           <label class="text-sm text-ink-700">Max auto-tickets per run</label>
           <input v-model.number="form.max_auto_tickets_per_run" type="number" min="1" max="200" class="input !w-20" :disabled="!canEdit" />
         </div>
@@ -495,6 +505,8 @@ const form = reactive({
   overdue_invoice_days: 3,
   auto_stuck_orders: 0,
   stuck_order_days: 3,
+  auto_item_content: 0,
+  item_content_days: 7,
   max_auto_tickets_per_run: 20,
   notify_on_assignment: 1,
   notify_sla: 1,

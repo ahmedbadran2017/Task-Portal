@@ -22,6 +22,8 @@
   "col_automation",
   "auto_stuck_orders",
   "stuck_order_days",
+  "auto_item_content",
+  "item_content_days",
   "max_auto_tickets_per_run",
   "section_notifications",
   "notify_on_assignment",
@@ -51,6 +53,8 @@
   {"fieldname": "col_automation", "fieldtype": "Column Break"},
   {"fieldname": "auto_stuck_orders", "fieldtype": "Check", "label": "Stuck Sales Orders → Logistics ticket", "default": "0"},
   {"fieldname": "stuck_order_days", "fieldtype": "Int", "label": "Order undelivered for (days)", "default": "3"},
+  {"fieldname": "auto_item_content", "fieldtype": "Check", "label": "New Items missing content → Content ticket", "default": "0"},
+  {"fieldname": "item_content_days", "fieldtype": "Int", "label": "Scan items created in the last (days)", "default": "7"},
   {"fieldname": "max_auto_tickets_per_run", "fieldtype": "Int", "label": "Max auto-tickets per run", "default": "20"},
 
   {"fieldname": "section_notifications", "fieldtype": "Section Break", "label": "Notifications"},

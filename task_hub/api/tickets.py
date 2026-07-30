@@ -96,7 +96,8 @@ def create_ticket(**kwargs):
 def list_tickets(status=None, priority=None, source_portal=None,
                  assigned_to=None, reported_by=None, ticket_type=None,
                  department=None, workspace=None, search=None, breached_only=0,
-                 mine=0, unassigned=0, limit=100, start=0, order_by="modified desc"):
+                 mine=0, unassigned=0, due_from=None, due_to=None,
+                 limit=100, start=0, order_by="modified desc"):
     """Filtered ticket list for the Hub board / list views."""
     gate_read()
     filters = {}
@@ -106,6 +107,10 @@ def list_tickets(status=None, priority=None, source_portal=None,
         filters["department"] = department
     if workspace:
         filters["workspace"] = workspace
+    if due_from and due_to:
+        filters["due_date"] = ["between", (due_from, due_to)]
+    elif due_from:
+        filters["due_date"] = [">=", due_from]
     if int(unassigned or 0):
         filters["assigned_to"] = ["in", (None, "")]
     if priority:

@@ -161,6 +161,9 @@ const AR = {
   "Counts as": "تُحسب كـ",
   "SLA applies": "الـ SLA مفعّل",
   "Members from department": "الأعضاء من قسم",
+  "Calendar": "التقويم",
+  "Today": "اليوم",
+  "No tickets with a due date this month.": "مفيش تذاكر بتاريخ استحقاق الشهر ده.",
 };
 
 const locale = ref(localStorage.getItem("th_lang") || "en");
