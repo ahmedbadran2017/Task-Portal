@@ -104,6 +104,38 @@ export function deleteAttachment(name, fileId) {
   return callMethod(`${M}.tickets.delete_attachment`, { name, file_id: fileId });
 }
 
+export function updateTicket(name, fields) {
+  return callMethod(`${M}.tickets.update_ticket`, { name, ...fields });
+}
+
+export function watchTicket(name, watch) {
+  return callMethod(`${M}.tickets.watch_ticket`, { name, watch: watch ? 1 : 0 });
+}
+
+export function checklistAdd(name, item) {
+  return callMethod(`${M}.tickets.checklist_add`, { name, item });
+}
+
+export function checklistToggle(name, row) {
+  return callMethod(`${M}.tickets.checklist_toggle`, { name, row });
+}
+
+export function checklistRemove(name, row) {
+  return callMethod(`${M}.tickets.checklist_remove`, { name, row });
+}
+
+export function listRecurringRules() {
+  return getMethod(`${M}.recurring.list_rules`);
+}
+
+export function saveRecurringRule(rule) {
+  return callMethod(`${M}.recurring.save_rule`, rule);
+}
+
+export function deleteRecurringRule(name) {
+  return callMethod(`${M}.recurring.delete_rule`, { name });
+}
+
 export function isImage(fileUrl) {
   return /\.(png|jpe?g|gif|webp|svg|heic)$/i.test(fileUrl || "");
 }

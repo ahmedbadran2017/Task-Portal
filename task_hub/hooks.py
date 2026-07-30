@@ -32,9 +32,11 @@ scheduler_events = {
     ],
     "daily": [
         "task_hub.automation.run_auto_rules",
+        "task_hub.task_hub.doctype.hub_recurring_ticket.hub_recurring_ticket.run_recurring_tickets",
     ],
     "weekly": [
         "task_hub.automation.send_weekly_digest",
+        "task_hub.api.notifications.purge_old_notifications",
     ],
     "monthly": [
         "task_hub.automation.send_monthly_scorecard",

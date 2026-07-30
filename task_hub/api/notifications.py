@@ -38,3 +38,12 @@ def mark_seen(name=None):
         )
     frappe.db.commit()
     return {"unread": frappe.db.count("Hub Notification", {"for_user": user, "seen": 0})}
+
+
+def purge_old_notifications():
+    """Weekly scheduler: seen notifications older than 60 days are noise."""
+    frappe.db.sql(
+        """DELETE FROM `tabHub Notification`
+           WHERE seen = 1 AND creation < DATE_SUB(NOW(), INTERVAL 60 DAY)"""
+    )
+    frappe.db.commit()

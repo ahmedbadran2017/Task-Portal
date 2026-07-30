@@ -143,10 +143,112 @@
       </div>
     </div>
 
+    <!-- language: personal, applies immediately, no save needed -->
+    <div class="card p-6">
+      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Language") }} / اللغة</h3>
+      <p class="text-xs text-ink-400 mb-4">Personal preference — stored on this device.</p>
+      <div class="inline-flex rounded-xl border border-ink-200 overflow-hidden">
+        <button
+          class="px-5 py-2 text-sm font-semibold transition"
+          :class="locale === 'en' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setLocale('en')"
+        >English</button>
+        <button
+          class="px-5 py-2 text-sm font-semibold transition"
+          :class="locale === 'ar' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setLocale('ar')"
+        >العربية</button>
+      </div>
+    </div>
+
+    <!-- recurring tickets -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-bold text-ink-900">{{ t("Recurring tickets") }}</h3>
+        <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="showRuleForm = !showRuleForm">
+          + {{ t("Add rule") }}
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mb-4">
+        Tickets that open themselves on a schedule — weekly reports, monthly stock counts…
+      </p>
+
+      <div v-if="showRuleForm" class="border border-ink-200 rounded-xl p-4 mb-4 space-y-3 bg-ink-50/50">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="col-span-2">
+            <label class="label">{{ t("Title") }} *</label>
+            <input v-model="ruleForm.title" class="input" />
+          </div>
+          <div>
+            <label class="label">{{ t("Type") }}</label>
+            <select v-model="ruleForm.ticket_type" class="input">
+              <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">{{ t("Priority") }}</label>
+            <select v-model="ruleForm.priority" class="input">
+              <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Frequency</label>
+            <select v-model="ruleForm.frequency" class="input">
+              <option value="Daily">{{ t("Daily") }}</option>
+              <option value="Weekly">{{ t("Weekly") }}</option>
+              <option value="Monthly">{{ t("Monthly") }}</option>
+            </select>
+          </div>
+          <div v-if="ruleForm.frequency === 'Weekly'">
+            <label class="label">Weekday</label>
+            <select v-model="ruleForm.weekday" class="input">
+              <option v-for="d in WEEKDAYS" :key="d">{{ d }}</option>
+            </select>
+          </div>
+          <div v-if="ruleForm.frequency === 'Monthly'">
+            <label class="label">Day of month</label>
+            <input v-model.number="ruleForm.day_of_month" type="number" min="1" max="28" class="input" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">{{ t("Assign To") }}</label>
+            <UserPicker v-model="ruleForm.assigned_to" :users="users" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button class="btn-outline !py-1.5" @click="showRuleForm = false">{{ t("Cancel") }}</button>
+          <button class="btn-primary !py-1.5" :disabled="!ruleForm.title.trim() || savingRule" @click="saveRule">
+            {{ t("Save") }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="rules.length" class="divide-y divide-ink-100">
+        <div v-for="r in rules" :key="r.name" class="py-3 flex items-center gap-3">
+          <Toggle
+            :model-value="r.active"
+            :disabled="!canEdit"
+            @update:model-value="toggleRule(r, $event)"
+          />
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-ink-800 truncate">{{ r.title }}</div>
+            <div class="text-[11px] text-ink-400">
+              {{ t(r.frequency) }}
+              <template v-if="r.frequency === 'Weekly'"> · {{ r.weekday }}</template>
+              <template v-if="r.frequency === 'Monthly'"> · day {{ r.day_of_month }}</template>
+              <template v-if="r.assigned_to"> · {{ r.assigned_to.split("@")[0] }}</template>
+              <template v-if="r.last_run"> · last: {{ r.last_run }}</template>
+            </div>
+          </div>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeRule(r)">✕</button>
+        </div>
+      </div>
+      <p v-else class="text-xs text-ink-400">No rules yet.</p>
+    </div>
+
     <div v-if="canEdit" class="flex justify-end gap-2">
-      <button class="btn-outline" :disabled="saving" @click="load">Reset</button>
+      <button class="btn-outline" :disabled="saving" @click="load">{{ t("Reset") }}</button>
       <button class="btn-primary" :disabled="saving" @click="save">
-        {{ saving ? "Saving…" : "Save Settings" }}
+        {{ saving ? t("Saving…") : t("Save Settings") }}
       </button>
     </div>
   </div>
@@ -154,13 +256,74 @@
 
 <script setup>
 import { reactive, ref, onMounted, h } from "vue";
+import UserPicker from "@/components/UserPicker.vue";
 import { useToast } from "@/composables/useToast";
-import { TYPES, PRIORITIES, PRIORITY_META, getSettings, updateSettings, whoami } from "@/composables/useTickets";
+import { useI18n } from "@/composables/useI18n";
+import {
+  TYPES, PRIORITIES, PRIORITY_META, getSettings, updateSettings, whoami,
+  assignableUsers, listRecurringRules, saveRecurringRule, deleteRecurringRule,
+} from "@/composables/useTickets";
 
 const toast = useToast();
+const { t, locale, setLocale } = useI18n();
 const error = ref("");
 const saving = ref(false);
 const canEdit = ref(false);
+
+// recurring rules
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const rules = ref([]);
+const users = ref([]);
+const showRuleForm = ref(false);
+const savingRule = ref(false);
+const ruleForm = reactive({
+  title: "",
+  ticket_type: "Task",
+  priority: "Medium",
+  frequency: "Weekly",
+  weekday: "Monday",
+  day_of_month: 1,
+  assigned_to: "",
+});
+
+async function loadRules() {
+  try {
+    rules.value = await listRecurringRules();
+  } catch {}
+}
+
+async function saveRule() {
+  savingRule.value = true;
+  try {
+    await saveRecurringRule({ ...ruleForm, active: 1 });
+    showRuleForm.value = false;
+    Object.assign(ruleForm, { title: "", assigned_to: "" });
+    await loadRules();
+    toast.success("Rule saved");
+  } catch (e) {
+    toast.error(e.message || "Could not save rule");
+  } finally {
+    savingRule.value = false;
+  }
+}
+
+async function toggleRule(r, val) {
+  try {
+    await saveRecurringRule({ name: r.name, active: val ? 1 : 0 });
+    r.active = val ? 1 : 0;
+  } catch (e) {
+    toast.error(e.message || "Could not update rule");
+  }
+}
+
+async function removeRule(r) {
+  try {
+    await deleteRecurringRule(r.name);
+    rules.value = rules.value.filter((x) => x.name !== r.name);
+  } catch (e) {
+    toast.error(e.message || "Could not delete rule");
+  }
+}
 
 const form = reactive({
   sla_urgent_hours: 4,
@@ -222,6 +385,8 @@ async function load() {
     const [s, me] = await Promise.all([getSettings(), whoami()]);
     Object.assign(form, s);
     canEdit.value = !!me.is_manager;
+    loadRules();
+    if (!users.value.length) assignableUsers("").then((u) => (users.value = u)).catch(() => {});
   } catch (e) {
     error.value = e.message || "Could not load settings";
   }

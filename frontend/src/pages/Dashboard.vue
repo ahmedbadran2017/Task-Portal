@@ -37,6 +37,7 @@
             :value="row.count"
             :max="maxPortal"
             :color="portalColor(row.portal)"
+            @click="go('/tickets', { portal: row.portal })"
           />
           <div v-if="!byPortal.length" class="text-center py-6">
             <div class="text-3xl mb-2">🎉</div>
@@ -236,8 +237,11 @@ const StatTile = (props, { emit }) =>
 StatTile.props = ["icon", "label", "value", "tone", "tint", "hint", "pulse"];
 StatTile.emits = ["click"];
 
-const BarRow = (props) =>
-  h("div", { class: "flex items-center gap-3" }, [
+const BarRow = (props, { emit }) =>
+  h("div", {
+    class: "flex items-center gap-3 cursor-pointer rounded-lg px-1 -mx-1 hover:bg-ink-50 transition",
+    onClick: () => emit("click"),
+  }, [
     h("div", { class: "w-24 text-sm text-ink-600 shrink-0" }, props.label),
     h("div", { class: "flex-1 h-2.5 rounded-full bg-ink-100 overflow-hidden" }, [
       h("div", {
@@ -252,4 +256,5 @@ const BarRow = (props) =>
     h("div", { class: "w-8 text-right text-sm font-semibold text-ink-800" }, String(props.value)),
   ]);
 BarRow.props = ["label", "value", "max", "color"];
+BarRow.emits = ["click"];
 </script>

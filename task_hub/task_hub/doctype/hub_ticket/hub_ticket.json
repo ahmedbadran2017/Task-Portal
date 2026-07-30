@@ -35,6 +35,9 @@
   "col_link",
   "linked_label",
   "linked_url",
+  "watchers",
+  "section_checklist",
+  "checklist",
   "section_comments",
   "comments",
   "section_activity",
@@ -74,6 +77,10 @@
   {"fieldname": "col_link", "fieldtype": "Column Break"},
   {"fieldname": "linked_label", "fieldtype": "Data", "label": "Linked Label", "description": "Human label, e.g. \"PO-2026-00123\"."},
   {"fieldname": "linked_url", "fieldtype": "Small Text", "label": "Linked URL", "description": "Deep link back to the record in its portal."},
+
+  {"fieldname": "watchers", "fieldtype": "Small Text", "label": "Watchers", "read_only": 1, "description": "Comma-separated user IDs following this ticket."},
+  {"fieldname": "section_checklist", "fieldtype": "Section Break", "label": "Checklist", "collapsible": 1},
+  {"fieldname": "checklist", "fieldtype": "Table", "options": "Hub Ticket Checklist Item", "label": "Checklist"},
 
   {"fieldname": "section_comments", "fieldtype": "Section Break", "label": "Comments"},
   {"fieldname": "comments", "fieldtype": "Table", "options": "Hub Ticket Comment", "label": "Comments"},

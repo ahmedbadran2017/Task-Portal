@@ -5,24 +5,24 @@
       <input
         v-model="filters.search"
         class="input !w-56"
-        placeholder="Search title or ID…"
+        :placeholder="t('Search title or ID…')"
         @keydown.enter="reload"
       />
       <select v-model="filters.status" class="input !w-auto" @change="reload">
-        <option value="">Any status</option>
-        <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
+        <option value="">{{ t("Any status") }}</option>
+        <option v-for="s in STATUSES" :key="s" :value="s">{{ t(s) }}</option>
       </select>
       <select v-model="filters.source_portal" class="input !w-auto" @change="reload">
-        <option value="">All portals</option>
+        <option value="">{{ t("All portals") }}</option>
         <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
       </select>
       <select v-model="filters.priority" class="input !w-auto" @change="reload">
-        <option value="">Any priority</option>
-        <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
+        <option value="">{{ t("Any priority") }}</option>
+        <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
       </select>
       <select v-model="filters.ticket_type" class="input !w-auto" @change="reload">
-        <option value="">Any type</option>
-        <option v-for="tp in TYPES" :key="tp" :value="tp">{{ tp }}</option>
+        <option value="">{{ t("Any type") }}</option>
+        <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
       </select>
       <div class="flex items-center gap-1.5">
         <button
@@ -35,8 +35,16 @@
           {{ c.label }}
         </button>
       </div>
+      <span
+        v-if="filters.department"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-brand-50 border border-brand-300 text-brand-700"
+      >
+        {{ filters.department }}
+        <button class="hover:text-rose-600" @click="filters.department = ''; reload()">✕</button>
+      </span>
       <div class="flex-1" />
-      <span class="text-sm text-ink-400">{{ total }} tickets</span>
+      <button class="btn-outline !py-1.5 text-xs" @click="exportCsv">⬇ {{ t("Export CSV") }}</button>
+      <span class="text-sm text-ink-400">{{ total }} {{ t("tickets") }}</span>
     </div>
 
     <div v-if="error" class="card p-4 text-sm text-rose-600 bg-rose-50 border-rose-200">
@@ -100,15 +108,19 @@
                 <span v-else class="text-xs text-ink-300">—</span>
               </td>
               <td class="px-3 py-3">
-                <span v-if="tk.sla_breached" class="text-xs font-bold text-rose-600">Breached</span>
+                <span v-if="tk.sla_breached" class="text-xs font-bold text-rose-600">{{ t("Breached") }}</span>
                 <span v-else class="text-xs text-ink-500">{{ relTime(tk.sla_deadline) }}</span>
+                <span v-if="tk.due_date" class="block text-[10px] text-ink-400 mt-0.5">📅 {{ tk.due_date }}</span>
               </td>
               <td class="px-4 py-3 text-ink-400 text-xs whitespace-nowrap">
                 {{ relTime(tk.modified) }}
               </td>
             </tr>
+            <tr v-for="i in (loading && !tickets.length ? 5 : 0)" :key="'sk' + i">
+              <td colspan="7" class="px-4 py-2"><div class="skeleton h-9" /></td>
+            </tr>
             <tr v-if="!tickets.length && !loading">
-              <td colspan="7" class="px-4 py-10 text-center text-ink-400">No tickets match.</td>
+              <td colspan="7" class="px-4 py-10 text-center text-ink-400">{{ t("No tickets match.") }}</td>
             </tr>
           </tbody>
         </table>
@@ -132,6 +144,7 @@ import { ref, reactive, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import Pill from "@/components/Pill.vue";
 import { useUi } from "@/composables/useUi";
+import { useI18n } from "@/composables/useI18n";
 import {
   STATUSES, PORTALS, PRIORITIES, TYPES, PRIORITY_META, STATUS_META, PORTAL_META,
   listTickets,
@@ -139,6 +152,7 @@ import {
 import { relTime } from "@/composables/useApi";
 
 const ui = useUi();
+const { t } = useI18n();
 const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
@@ -161,9 +175,9 @@ const filters = reactive({
 });
 
 const quickChips = [
-  { key: "mine", label: "Mine" },
-  { key: "unassigned", label: "Unassigned" },
-  { key: "breached_only", label: "SLA breached" },
+  { key: "mine", label: t("Mine") },
+  { key: "unassigned", label: t("Unassigned") },
+  { key: "breached_only", label: t("SLA breached") },
 ];
 
 // Dashboard tiles deep-link here (?breached=1, ?mine=1, ?unassigned=1, ?status=…)
@@ -174,6 +188,7 @@ function applyRouteQuery() {
   filters.unassigned = q.unassigned ? 1 : 0;
   if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
   filters.department = typeof q.department === "string" ? q.department : "";
+  if (typeof q.portal === "string" && PORTALS.includes(q.portal)) filters.source_portal = q.portal;
   // Email deep links: /taskhub/tickets?open=TKT-… pops the ticket card open.
   if (typeof q.open === "string" && q.open) ui.openTicket(q.open);
 }
@@ -211,6 +226,28 @@ function reload() {
 function page(dir) {
   start.value = Math.max(0, start.value + dir * limit);
   load();
+}
+
+async function exportCsv() {
+  try {
+    const res = await listTickets({ ...cleaned(), limit: 1000, start: 0, order_by: "modified desc" });
+    const rows = res.tickets || [];
+    const cols = ["name", "title", "ticket_type", "priority", "status", "source_portal",
+                  "department", "reported_by", "assigned_to", "due_date", "sla_deadline",
+                  "sla_breached", "resolved_on", "creation"];
+    const esc = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
+    const csv = [cols.join(",")]
+      .concat(rows.map((r) => cols.map((c) => esc(r[c])).join(",")))
+      .join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "task-hub-tickets.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    error.value = e.message || "Export failed";
+  }
 }
 
 function portalColor(p) {

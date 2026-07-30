@@ -70,8 +70,8 @@
           <NotificationBell />
           <button class="btn-primary" @click="ui.openCreate()">
           <span class="text-base leading-none">+</span>
-          <span class="hidden sm:inline">New Ticket</span>
-          <span class="sm:hidden">New</span>
+          <span class="hidden sm:inline">{{ t("New Ticket") }}</span>
+          <span class="sm:hidden">{{ t("New") }}</span>
           </button>
         </div>
       </header>
@@ -113,10 +113,12 @@ import Toaster from "@/components/Toaster.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
 import { useUi } from "@/composables/useUi";
+import { useI18n } from "@/composables/useI18n";
 import { COMPANY } from "@/composables/useApi";
 
 const ui = useUi();
 const route = useRoute();
+const { t } = useI18n();
 
 // Served by Frappe from the app's public/ dir in production; the dev server
 // serves the copy in frontend/public/ instead (bound, not static-imported, so
@@ -125,13 +127,14 @@ const logoSrc = import.meta.env.DEV
   ? "/justyol-logo.png"
   : "/assets/task_hub/justyol-logo.png";
 
-const nav = [
-  { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { to: "/board", label: "Board", icon: "board" },
-  { to: "/tickets", label: "All Tickets", short: "Tickets", icon: "list" },
-  { to: "/teams", label: "Teams", icon: "users" },
-  { to: "/settings", label: "Settings", icon: "settings" },
-];
+const nav = computed(() => [
+  { to: "/dashboard", label: t("Dashboard"), icon: "dashboard" },
+  { to: "/my", label: t("My Work"), icon: "user" },
+  { to: "/board", label: t("Board"), icon: "board" },
+  { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
+  { to: "/teams", label: t("Teams"), icon: "users" },
+  { to: "/settings", label: t("Settings"), icon: "settings" },
+]);
 
 const fullName = (typeof window !== "undefined" && window.full_name) || "User";
 const company = COMPANY;
@@ -147,5 +150,5 @@ const initials = computed(() =>
 function isActive(to) {
   return route.path.startsWith(to);
 }
-const currentTitle = computed(() => nav.find((n) => isActive(n.to))?.label || "Task Hub");
+const currentTitle = computed(() => nav.value.find((n) => isActive(n.to))?.label || t("Task Hub"));
 </script>

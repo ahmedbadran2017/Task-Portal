@@ -158,6 +158,12 @@ def get_ticket(name):
             for a in doc.activity
         ],
         "attachments": _attachments(name),
+        "checklist": [
+            {"name": c.name, "item": c.item, "done": c.done, "done_by": c.done_by}
+            for c in doc.checklist
+        ],
+        "watchers": doc.watcher_list(),
+        "watching": frappe.session.user in doc.watcher_list(),
     }
 
 
@@ -177,6 +183,100 @@ def _load_editable(name):
     if not can_edit_ticket(doc):
         frappe.throw(_("You can't modify this ticket."), frappe.PermissionError)
     return doc
+
+
+@frappe.whitelist()
+def update_ticket(name, title=None, description=None, due_date=None, tags=None):
+    """Edit the ticket's core fields — reporter, assignee, or managers."""
+    gate_read()
+    doc = _load_editable(name)
+    changes = []
+    if title is not None and title.strip() and title.strip() != doc.title:
+        changes.append(f"title: “{doc.title}” → “{title.strip()[:80]}”")
+        doc.title = title.strip()[:180]
+    if description is not None and description != doc.description:
+        changes.append("description updated")
+        doc.description = description
+    if due_date is not None and (due_date or None) != (str(doc.due_date) if doc.due_date else None):
+        changes.append(f"due date → {due_date or '—'}")
+        doc.due_date = due_date or None
+    if tags is not None and (tags or None) != doc.tags:
+        doc.tags = tags or None
+    if changes:
+        doc.append("activity", {
+            "activity_on": now_datetime(),
+            "actor": frappe.session.user,
+            "action": "Edited",
+            "detail": "; ".join(changes)[:500],
+        })
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name, "title": doc.title, "due_date": doc.due_date}
+
+
+@frappe.whitelist()
+def watch_ticket(name, watch=1):
+    """Follow/unfollow a ticket — watchers get in-app updates on status
+    changes and comments."""
+    gate_read()
+    doc = frappe.get_doc("Hub Ticket", name)  # any member may watch
+    user = frappe.session.user
+    watchers = set(doc.watcher_list())
+    if int(watch or 0):
+        watchers.add(user)
+    else:
+        watchers.discard(user)
+    doc.watchers = ", ".join(sorted(watchers))
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name, "watching": user in watchers,
+            "watchers": sorted(watchers)}
+
+
+@frappe.whitelist()
+def checklist_add(name, item):
+    gate_read()
+    item = (item or "").strip()
+    if not item:
+        frappe.throw(_("Checklist item cannot be empty."))
+    doc = frappe.get_doc("Hub Ticket", name)  # any member may contribute
+    doc.append("checklist", {"item": item[:200], "done": 0})
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return _checklist(doc)
+
+
+@frappe.whitelist()
+def checklist_toggle(name, row):
+    gate_read()
+    doc = frappe.get_doc("Hub Ticket", name)
+    for c in doc.checklist:
+        if c.name == row:
+            c.done = 0 if c.done else 1
+            c.done_by = frappe.session.user if c.done else None
+            break
+    else:
+        frappe.throw(_("Checklist item not found."))
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return _checklist(doc)
+
+
+@frappe.whitelist()
+def checklist_remove(name, row):
+    gate_read()
+    doc = _load_editable(name)
+    doc.checklist = [c for c in doc.checklist if c.name != row]
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return _checklist(doc)
+
+
+def _checklist(doc):
+    return {"checklist": [
+        {"name": c.name, "item": c.item, "done": c.done, "done_by": c.done_by}
+        for c in doc.checklist
+    ]}
 
 
 @frappe.whitelist()
@@ -245,8 +345,10 @@ def upload_attachment(name):
     if len(content) > MAX_FILE_MB * 1024 * 1024:
         frappe.throw(_("File is larger than {0} MB.").format(MAX_FILE_MB))
 
+    # Private: customer screenshots must not be world-readable. The SPA and
+    # portals request them with the session cookie, so previews still render.
     file_doc = save_file(f.filename, content, "Hub Ticket", doc.name,
-                         is_private=0)
+                         is_private=1)
 
     doc.append("activity", {
         "activity_on": now_datetime(),
@@ -355,6 +457,12 @@ def _notify_comment(doc, message):
             user, doc.name, "comment",
             _("{0} commented on {1}: {2}").format(author_name, doc.name, message[:120]),
             email_subject=_("[Task Hub] New comment on {0}").format(doc.name),
-            email_html=(f"<p>{author_name} commented on <b>{doc.title}</b>:</p>"
+            email_html=(f"<p>{author_name} commented on "
+                        f"<b>{frappe.utils.escape_html(doc.title)}</b>:</p>"
                         f"<blockquote>{quoted}</blockquote>"),
         )
+
+    # Watchers follow along in-app only — no email.
+    for user in set(doc.watcher_list()) - {author} - mentioned - participants:
+        push(user, doc.name, "comment",
+             _("{0} commented on {1}: {2}").format(author_name, doc.name, message[:120]))

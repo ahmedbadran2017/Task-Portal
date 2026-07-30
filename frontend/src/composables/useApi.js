@@ -35,12 +35,21 @@ export function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
-// Frappe wraps server messages as a JSON string inside a JSON-array string.
+// Server messages arrive as JSON-in-JSON and often carry HTML markup
+// (<details>, <strong>, …) meant for Frappe's desk — strip it so error
+// banners show clean text instead of raw tags.
+function stripHtml(s) {
+  return String(s)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function parseServerMessages(raw) {
   if (!raw) return "";
   try {
     const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (!Array.isArray(arr)) return String(raw);
+    if (!Array.isArray(arr)) return stripHtml(raw);
     return arr
       .map((m) => {
         if (m && typeof m === "object") return m.message || JSON.stringify(m);
@@ -50,10 +59,15 @@ export function parseServerMessages(raw) {
           return m;
         }
       })
+      .map(stripHtml)
       .join(" · ");
   } catch {
-    return String(raw);
+    return stripHtml(raw);
   }
+}
+
+export function cleanError(e) {
+  return stripHtml(e?.message || e || "");
 }
 
 // GET a whitelisted method (read-only, no CSRF needed).

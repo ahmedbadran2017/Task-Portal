@@ -19,9 +19,13 @@ def email_footer(ticket_name):
 
 
 def push(user, ticket, ntype, message, email_subject=None, email_html=None):
-    """In-app notification for `user`, plus an email when a subject is given."""
-    if not user or user in ("Guest", "Administrator"):
+    """In-app notification for `user`, plus an email when a subject is given.
+    Administrator gets in-app entries (useful while testing) but never email —
+    its address is typically not a real mailbox."""
+    if not user or user == "Guest":
         return
+    if user == "Administrator":
+        email_subject = None
     try:
         frappe.get_doc({
             "doctype": "Hub Notification",

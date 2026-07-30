@@ -3,27 +3,32 @@
     <!-- filter bar -->
     <div class="flex flex-wrap items-center gap-2">
       <select v-model="filters.source_portal" class="input !w-auto" @change="load">
-        <option value="">All portals</option>
+        <option value="">{{ t("All portals") }}</option>
         <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
       </select>
       <select v-model="filters.priority" class="input !w-auto" @change="load">
-        <option value="">Any priority</option>
-        <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
+        <option value="">{{ t("Any priority") }}</option>
+        <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
       </select>
       <label class="flex items-center gap-2 text-sm text-ink-600 ml-1">
         <input type="checkbox" v-model="filters.mine" class="rounded" @change="load" />
-        My tickets
+        {{ t("My tickets") }}
       </label>
       <label class="flex items-center gap-2 text-sm text-ink-600">
         <input type="checkbox" v-model="filters.breached_only" class="rounded" @change="load" />
-        SLA breached
+        {{ t("SLA breached") }}
       </label>
       <div class="flex-1" />
-      <button class="btn-outline" @click="load">↻ Refresh</button>
+      <button class="btn-outline" @click="load">↻ {{ t("Refresh") }}</button>
     </div>
 
     <div v-if="error" class="card p-4 text-sm text-rose-600 bg-rose-50 border-rose-200">
       {{ error }}
+    </div>
+
+    <div v-if="total > tickets.length && !loading"
+         class="card p-3 text-xs text-amber-700 bg-amber-50 border-amber-200">
+      {{ t("Showing first {0} of {1} tickets — refine the filters.", tickets.length, total) }}
     </div>
 
     <!-- board: horizontal swipe on mobile, grid on desktop -->
@@ -41,7 +46,7 @@
         <div class="flex items-center justify-between px-1 mb-3">
           <div class="flex items-center gap-2">
             <span class="w-2 h-2 rounded-full" :style="{ background: STATUS_META[col].color }" />
-            <span class="text-sm font-semibold text-ink-700">{{ col }}</span>
+            <span class="text-sm font-semibold text-ink-700">{{ t(col) }}</span>
           </div>
           <span
             class="text-xs font-bold rounded-full px-2 py-0.5"
@@ -52,6 +57,10 @@
         </div>
 
         <div class="flex-1 space-y-2.5 overflow-y-auto scroll-thin max-h-[calc(100vh-230px)] pr-0.5">
+          <template v-if="loading && !tickets.length">
+            <div class="skeleton h-24" />
+            <div class="skeleton h-24 opacity-70" />
+          </template>
           <div
             v-for="ticket in grouped[col]"
             :key="ticket.name"
@@ -59,16 +68,21 @@
             @dragstart="dragging = ticket"
             @dragend="dragging = null"
           >
-            <TicketCard :ticket="ticket" @open="ui.openTicket" />
+            <TicketCard
+              :ticket="ticket"
+              :advance="nextColumn(col)"
+              @open="ui.openTicket"
+              @advance="advanceTicket"
+            />
           </div>
           <p v-if="!grouped[col].length && !loading" class="text-xs text-ink-400 px-1 py-4 text-center">
-            Nothing here
+            {{ t("Nothing here") }}
           </p>
         </div>
       </div>
     </div>
 
-    <p v-if="loading" class="text-sm text-ink-400 text-center py-4">Loading tickets…</p>
+    <p v-if="loading" class="text-sm text-ink-400 text-center py-4">{{ t("Loading tickets…") }}</p>
   </div>
 </template>
 
@@ -78,6 +92,7 @@ import { useRoute } from "vue-router";
 import TicketCard from "@/components/TicketCard.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
+import { useI18n } from "@/composables/useI18n";
 import {
   BOARD_COLUMNS, PORTALS, PRIORITIES, STATUS_META, listTickets, updateStatus, getSettings,
 } from "@/composables/useTickets";
@@ -85,9 +100,11 @@ import {
 const ui = useUi();
 const toast = useToast();
 const route = useRoute();
+const { t } = useI18n();
 const loading = ref(true);
 const error = ref("");
 const tickets = ref([]);
+const total = ref(0);
 const dragging = ref(null);
 const dropTarget = ref(null);
 let refreshTimer = null;
@@ -132,7 +149,8 @@ async function load() {
       order_by: "modified desc",
     });
     // Only board columns; terminal states (Closed/Cancelled) live in the list view.
-    tickets.value = (res.tickets || []).filter((t) => BOARD_COLUMNS.includes(t.status));
+    tickets.value = (res.tickets || []).filter((tk) => BOARD_COLUMNS.includes(tk.status));
+    total.value = res.total || 0;
   } catch (e) {
     error.value = e.message || "Could not load tickets";
   } finally {
@@ -153,6 +171,26 @@ async function onDrop(col) {
     ui.bump();
   } catch (e) {
     t.status = prev; // rollback
+    toast.error(e.message || "Could not move ticket");
+  }
+}
+
+function nextColumn(col) {
+  const i = BOARD_COLUMNS.indexOf(col);
+  return i >= 0 && i < BOARD_COLUMNS.length - 1 ? BOARD_COLUMNS[i + 1] : "";
+}
+
+async function advanceTicket(tk) {
+  const next = nextColumn(tk.status);
+  if (!next) return;
+  const prev = tk.status;
+  tk.status = next;
+  try {
+    await updateStatus(tk.name, next);
+    toast.success(`${tk.name} → ${next}`);
+    ui.bump();
+  } catch (e) {
+    tk.status = prev;
     toast.error(e.message || "Could not move ticket");
   }
 }

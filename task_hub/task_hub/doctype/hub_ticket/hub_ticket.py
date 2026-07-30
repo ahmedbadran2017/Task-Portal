@@ -75,6 +75,8 @@ class HubTicket(Document):
         # Status transitions
         if before.status != self.status:
             self._log("Status changed", _("{0} → {1}").format(before.status, self.status))
+            self._notify_watchers(
+                "status", _("{0}: {1} → {2}").format(self.name, before.status, self.status))
             if self.status in CLOSED_STATES and not self.resolved_on:
                 self.resolved_on = now_datetime()
                 self._notify_resolved()
@@ -96,7 +98,7 @@ class HubTicket(Document):
 
         # Priority changes re-price the SLA only while the ticket is still open.
         if before.priority != self.priority and self.status not in CLOSED_STATES:
-            self._set_sla_deadline()
+            self._set_sla_deadline(from_now=True)
             # Deadline moved — allow a fresh warning for the new window.
             self.sla_warning_sent = 0
             self._log("Priority changed", _("{0} → {1}").format(before.priority, self.priority))
@@ -118,9 +120,13 @@ class HubTicket(Document):
             if fallback and frappe.db.exists("Department", fallback):
                 self.department = fallback
 
-    def _set_sla_deadline(self):
+    def _set_sla_deadline(self, from_now=False):
+        """On creation the clock starts at `creation`; a later re-price starts
+        a fresh window from now — otherwise raising a 3-day-old ticket to
+        Urgent (4h budget) marks it breached instantly."""
         hours = _sla_hours().get(self.priority or "Medium", 72)
-        base = get_datetime(self.creation) if self.creation else now_datetime()
+        base = now_datetime() if from_now else (
+            get_datetime(self.creation) if self.creation else now_datetime())
         self.sla_deadline = add_to_date(base, hours=hours)
         self._refresh_breach_flag()
 
@@ -157,10 +163,20 @@ class HubTicket(Document):
                 frappe.utils.get_fullname(frappe.session.user), self.title),
             email_subject=(_("[Task Hub] {0} assigned to you").format(self.name)
                            if email_on else None),
-            email_html=(f"<p><b>{self.title}</b> ({self.priority} · "
-                        f"{self.source_portal}) was assigned to you by "
+            email_html=(f"<p><b>{frappe.utils.escape_html(self.title)}</b> "
+                        f"({self.priority} · {self.source_portal}) was assigned "
+                        f"to you by "
                         f"{frappe.utils.get_fullname(frappe.session.user)}.</p>"),
         )
+
+    def watcher_list(self):
+        return [w.strip() for w in (self.watchers or "").split(",") if w.strip()]
+
+    def _notify_watchers(self, ntype, message):
+        """In-app only — watchers opted in to follow, not to be emailed."""
+        from task_hub.notify import push
+        for w in set(self.watcher_list()) - {frappe.session.user}:
+            push(w, self.name, ntype, message)
 
     def _notify_resolved(self):
         """Tell the reporter their ticket was resolved (unless they did it)."""
@@ -172,8 +188,8 @@ class HubTicket(Document):
             self.reported_by, self.name, "resolved",
             _("Your ticket was resolved: {0}").format(self.title),
             email_subject=_("[Task Hub] {0} resolved").format(self.name),
-            email_html=(f"<p>Your ticket <b>{self.title}</b> was marked "
-                        f"<b>{self.status}</b> by "
+            email_html=(f"<p>Your ticket <b>{frappe.utils.escape_html(self.title)}</b> "
+                        f"was marked <b>{self.status}</b> by "
                         f"{frappe.utils.get_fullname(frappe.session.user)}.</p>"),
         )
 

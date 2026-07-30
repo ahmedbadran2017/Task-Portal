@@ -25,6 +25,12 @@
       {{ ticket.title }}
     </p>
 
+    <div v-if="ticket.due_date" class="mt-1.5">
+      <span class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded"
+            :class="dueOver ? 'text-rose-700 bg-rose-50 font-semibold' : 'text-ink-500 bg-ink-50'">
+        📅 {{ fmtDate(ticket.due_date) }}
+      </span>
+    </div>
     <div v-if="ticket.linked_label" class="mt-1.5">
       <span class="inline-flex items-center gap-1 text-[11px] text-ink-500 bg-ink-50 px-1.5 py-0.5 rounded">
         🔗 {{ ticket.linked_label }}
@@ -46,6 +52,13 @@
         >SLA</span
       >
       <span v-else class="text-[11px] text-ink-400 whitespace-nowrap">{{ due }}</span>
+      <!-- touch devices can't drag — one tap advances the column -->
+      <button
+        v-if="advance"
+        class="md:hidden shrink-0 w-7 h-7 grid place-items-center rounded-lg bg-brand-50 text-brand-600 font-bold"
+        :title="advance"
+        @click.stop="$emit('advance', ticket)"
+      >→</button>
     </div>
   </div>
 </template>
@@ -54,10 +67,14 @@
 import { computed } from "vue";
 import Pill from "./Pill.vue";
 import { PRIORITY_META, PORTAL_META } from "@/composables/useTickets";
-import { relTime } from "@/composables/useApi";
+import { relTime, fmtDate } from "@/composables/useApi";
 
-const props = defineProps({ ticket: { type: Object, required: true } });
-defineEmits(["open"]);
+const props = defineProps({
+  ticket: { type: Object, required: true },
+  // Next column name — shows the one-tap advance button on touch screens.
+  advance: { type: String, default: "" },
+});
+defineEmits(["open", "advance"]);
 
 const priorityMeta = computed(
   () => PRIORITY_META[props.ticket.priority] || PRIORITY_META.Medium
@@ -66,6 +83,10 @@ const portalMeta = computed(() => PORTAL_META[props.ticket.source_portal] || POR
 const due = computed(() =>
   props.ticket.sla_deadline ? relTime(props.ticket.sla_deadline) : ""
 );
+const dueOver = computed(() => {
+  if (!props.ticket.due_date) return false;
+  return new Date(props.ticket.due_date + "T23:59:59").getTime() < Date.now();
+});
 
 function shortUser(u) {
   return String(u).split("@")[0];

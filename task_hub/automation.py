@@ -201,7 +201,7 @@ def notify_sla_risks():
             t.assigned_to, t.name, "sla_warning",
             f"SLA warning: ~{hours_left}h left on {t.name} — {t.title}",
             email_subject=f"[Task Hub] {t.name} nears its SLA ({hours_left}h left)",
-            email_html=(f"<p><b>{t.title}</b> ({t.priority}) breaches its SLA "
+            email_html=(f"<p><b>{frappe.utils.escape_html(t.title)}</b> ({t.priority}) breaches its SLA "
                         f"in about <b>{hours_left}h</b>.</p>"),
         )
         frappe.db.set_value("Hub Ticket", t.name, "sla_warning_sent", 1,
@@ -225,7 +225,7 @@ def notify_sla_risks():
                      f"SLA breached: {t.name} — {t.title}")
         managers = _manager_emails(s)
         items = "".join(
-            f"<li><b>{t.name}</b> · {t.title} ({t.source_portal}, {t.priority}, "
+            f"<li><b>{t.name}</b> · {frappe.utils.escape_html(t.title)} ({t.source_portal}, {t.priority}, "
             f"assignee: {t.assigned_to or 'unassigned'})</li>"
             for t in breached
         )
