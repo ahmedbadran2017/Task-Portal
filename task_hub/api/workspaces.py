@@ -78,6 +78,21 @@ def save_workspace(**kwargs):
                 "color": (s.get("color") or "")[:9] or None,
             })
     doc.save(ignore_permissions=True)
+
+    # Stages may have been renamed/removed — re-slot any ticket whose stage
+    # vanished onto the stage matching its canonical status, so boards never
+    # show orphaned cards.
+    valid = [s.stage_name for s in doc.stages]
+    if valid:
+        from task_hub.task_hub.doctype.hub_workspace.hub_workspace import stage_for_status
+        orphans = frappe.get_all(
+            "Hub Ticket",
+            filters={"workspace": doc.name, "stage": ["not in", valid]},
+            fields=["name", "status"])
+        for o in orphans:
+            frappe.db.set_value("Hub Ticket", o.name, "stage",
+                                stage_for_status(doc, o.status),
+                                update_modified=False)
     frappe.db.commit()
     return {"name": doc.name}
 

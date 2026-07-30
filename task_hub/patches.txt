@@ -1,3 +1,4 @@
 # Patches applied during bench migrate
 task_hub.patches.v0_2_department_link
 task_hub.patches.v0_3_workspaces
+task_hub.patches.v0_4_marketing_workspace
