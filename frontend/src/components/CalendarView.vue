@@ -2,11 +2,11 @@
   <div class="card overflow-hidden">
     <!-- month nav -->
     <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
-      <button class="btn-ghost !px-2.5" @click="shift(-1)">‹</button>
+      <button class="btn-ghost !px-2.5" :aria-label="t('Prev')" @click="shift(-1)"><NavIcon name="chevron-left" :size="14" flip /></button>
       <div class="text-sm font-bold text-ink-900">{{ monthLabel }}</div>
       <div class="flex items-center gap-1">
         <button class="btn-outline !py-1 !px-2.5 text-xs" @click="goToday">{{ t("Today") }}</button>
-        <button class="btn-ghost !px-2.5" @click="shift(1)">›</button>
+        <button class="btn-ghost !px-2.5" :aria-label="t('Next')" @click="shift(1)"><NavIcon name="chevron-right" :size="14" flip /></button>
       </div>
     </div>
 
@@ -61,10 +61,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import NavIcon from "./NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
 import { useWorkspaces } from "@/composables/useWorkspaces";
 import { listTickets, PRIORITY_META } from "@/composables/useTickets";
+import { intlLocale } from "@/composables/useApi";
 
 const ui = useUi();
 const { t, locale } = useI18n();
@@ -76,16 +78,19 @@ const month = ref(today.getMonth()); // 0-based
 const tickets = ref([]);
 const loading = ref(false);
 
-const weekdays = computed(() =>
-  locale.value === "ar"
-    ? ["إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت", "أحد"]
-    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-);
+// Weekday + month names come from Intl so every locale (incl. French) is
+// covered instead of only Arabic and English.
+const weekdays = computed(() => {
+  const fmt = new Intl.DateTimeFormat(intlLocale(), { weekday: "short" });
+  // 2024-01-01 was a Monday — the calendar grid is Monday-first.
+  return Array.from({ length: 7 }, (_, i) =>
+    fmt.format(new Date(2024, 0, 1 + i))
+  );
+});
 
 const monthLabel = computed(() =>
   new Date(year.value, month.value, 1).toLocaleDateString(
-    locale.value === "ar" ? "ar-EG" : "en-GB",
-    { month: "long", year: "numeric" }
+    intlLocale(), { month: "long", year: "numeric" }
   )
 );
 

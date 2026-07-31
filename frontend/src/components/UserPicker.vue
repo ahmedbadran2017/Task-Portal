@@ -13,8 +13,8 @@
         >{{ initials(selectedLabel) }}</span>
         <span class="truncate">{{ selectedLabel }}</span>
       </span>
-      <span v-else class="text-ink-400">— Unassigned —</span>
-      <span class="text-ink-400 text-xs shrink-0">▾</span>
+      <span v-else class="text-ink-400">{{ t("— Unassigned —") }}</span>
+      <NavIcon name="chevron-down" :size="12" class="text-ink-400 shrink-0" />
     </button>
 
     <div
@@ -26,7 +26,7 @@
           ref="searchEl"
           v-model="query"
           class="input !py-1.5"
-          placeholder="Search by name…"
+          :placeholder="t('Search by name…')"
           @keydown.escape="open = false"
         />
       </div>
@@ -36,7 +36,7 @@
           class="w-full text-left px-3 py-2 text-sm text-ink-500 hover:bg-ink-50"
           @click="pick('')"
         >
-          — Unassigned —
+          {{ t("— Unassigned —") }}
         </button>
         <button
           v-for="u in filtered"
@@ -55,7 +55,7 @@
             <span class="block text-[10px] text-ink-400 truncate">{{ u.name }}</span>
           </span>
         </button>
-        <p v-if="!filtered.length" class="px-3 py-3 text-xs text-ink-400">No one matches.</p>
+        <p v-if="!filtered.length" class="px-3 py-3 text-xs text-ink-400">{{ t("No one matches.") }}</p>
       </div>
     </div>
   </div>
@@ -63,6 +63,10 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { useI18n } from "@/composables/useI18n";
+import NavIcon from "./NavIcon.vue";
+
+const { t } = useI18n();
 
 const props = defineProps({
   modelValue: { type: String, default: "" },

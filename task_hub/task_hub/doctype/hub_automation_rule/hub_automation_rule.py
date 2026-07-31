@@ -36,9 +36,12 @@ def _matches(rule):
         params["days"] = int(rule.stuck_days or 3)
     elif rule.trigger == "Due date passed":
         conds.append("due_date IS NOT NULL AND due_date < CURDATE()")
+    # Deterministic order: an unordered LIMIT meant some matching tickets
+    # could never be reached at all.
     return frappe.db.sql(
         f"""SELECT name, title, workspace, assigned_to, reported_by
-            FROM `tabHub Ticket` WHERE {' AND '.join(conds)} LIMIT 200""",
+            FROM `tabHub Ticket` WHERE {' AND '.join(conds)}
+            ORDER BY modified ASC LIMIT 500""",
         params, as_dict=True,
     )
 
@@ -77,14 +80,12 @@ def run_automation_rules():
                                pluck="name"):
         rule = frappe.get_doc("Hub Automation Rule", name)
         try:
-            fired = json.loads(rule.fired_log or "[]")
+            fired = set(json.loads(rule.fired_log or "[]"))
         except Exception:
-            fired = []
-        fired_set = set(fired)
+            fired = set()
         changed = False
         for tk in _matches(rule):
-            key = tk.name
-            if key in fired_set:
+            if tk.name in fired:
                 continue
             try:
                 _apply(rule, tk)
@@ -92,11 +93,20 @@ def run_automation_rules():
                 frappe.log_error(title=f"Hub automation rule {rule.name}",
                                  message=frappe.get_traceback()[:3000])
                 continue
-            fired.append(key)
-            fired_set.add(key)
+            fired.add(tk.name)
             changed = True
         if changed:
+            # Prune by liveness, not by age: dropping the oldest entries made
+            # a long-lived ticket fire the same rule a second time. Closed
+            # tickets can't match again, so their keys are safe to forget.
+            if len(fired) > FIRED_CAP:
+                still_open = set(frappe.get_all(
+                    "Hub Ticket",
+                    filters={"name": ["in", list(fired)],
+                             "status": ["in", OPEN_STATES]},
+                    pluck="name"))
+                fired = still_open or set(list(fired)[-FIRED_CAP:])
             frappe.db.set_value("Hub Automation Rule", rule.name, "fired_log",
-                                json.dumps(fired[-FIRED_CAP:]),
+                                json.dumps(sorted(fired)),
                                 update_modified=False)
-    frappe.db.commit()
+            frappe.db.commit()  # per rule — one bad rule can't undo the rest

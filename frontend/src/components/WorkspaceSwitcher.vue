@@ -7,7 +7,7 @@
       <span
         class="w-7 h-7 rounded-lg grid place-items-center text-sm shrink-0"
         :style="{ background: (currentWs?.color || '#78716c') + '22' }"
-      >{{ currentWs?.icon || "🌐" }}</span>
+      >{{ currentWs?.icon || "🗂️" }}</span>
       <span class="min-w-0 flex-1">
         <span class="block text-sm font-bold text-ink-900 truncate">
           {{ currentWs ? currentWs.name : t("All workspaces") }}
@@ -16,7 +16,7 @@
           {{ currentWs ? currentWs.open_count + " " + t("open") : workspaces.length + " workspaces" }}
         </span>
       </span>
-      <span class="text-ink-400 text-xs">▾</span>
+      <NavIcon name="chevron-down" :size="12" class="text-ink-400" />
     </button>
 
     <div
@@ -28,7 +28,7 @@
         :class="!current ? 'bg-brand-50/60' : ''"
         @click="pick('')"
       >
-        <span class="w-7 h-7 rounded-lg grid place-items-center text-sm bg-ink-100">🌐</span>
+        <span class="w-7 h-7 rounded-lg grid place-items-center bg-ink-100 text-ink-500"><NavIcon name="globe" :size="14" /></span>
         <span class="text-sm font-medium text-ink-800">{{ t("All workspaces") }}</span>
       </button>
       <button
@@ -60,6 +60,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
+import NavIcon from "./NavIcon.vue";
 import { useWorkspaces } from "@/composables/useWorkspaces";
 import { useI18n } from "@/composables/useI18n";
 import { useUi } from "@/composables/useUi";

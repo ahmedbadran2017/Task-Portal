@@ -8,6 +8,7 @@
     stroke-linejoin="round"
     :width="size"
     :height="size"
+    :class="flip ? 'rtl:-scale-x-100' : ''"
   >
     <component :is="el.tag" v-for="(el, i) in shapes" :key="i" v-bind="el.attrs" />
   </svg>
@@ -61,11 +62,23 @@ const ICONS = {
   send: [p("M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"), p("m21.854 2.147-10.94 10.939")],
   ban: [c(12, 12, 10), p("m4.9 4.9 14.2 14.2")],
   gauge: [p("m12 14 4-4"), p("M3.34 19a10 10 0 1 1 17.32 0")],
+  "chevron-down": [p("m6 9 6 6 6-6")],
+  // Directional glyphs mirror under RTL via the `flip` prop.
+  "chevron-left": [p("m15 18-6-6 6-6")],
+  "chevron-right": [p("m9 18 6-6-6-6")],
+  file: [p("M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"), p("M14 2v4a2 2 0 0 0 2 2h4")],
+  "trend-up": [p("M16 7h6v6"), p("m22 7-8.5 8.5-5-5L2 17")],
+  globe: [c(12, 12, 10), p("M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"), p("M2 12h20")],
+  warning: [p("m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"), p("M12 9v4"), p("M12 17h.01")],
+  "check-square": [p("m9 11 3 3L22 4"), p("M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11")],
+  "arrow-right": [p("M5 12h14"), p("m12 5 7 7-7 7")],
 };
 
 const props = defineProps({
   name: { type: String, required: true },
   size: { type: [Number, String], default: 16 },
+  // Directional glyphs (chevrons, arrows) must point the other way in RTL.
+  flip: { type: Boolean, default: false },
 });
 
 const shapes = computed(() => ICONS[props.name] || []);

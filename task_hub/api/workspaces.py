@@ -11,16 +11,18 @@ from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
 OPEN_STATES = ("Open", "In Progress", "In Review")
 
 
-def _open_count(workspace):
-    """Open tickets in a workspace, scoped to what the caller may see."""
+def _open_counts():
+    """Open-ticket count per workspace in ONE grouped query, scoped to what
+    the caller may see (the per-workspace version was an N+1 on every SPA
+    navigation)."""
     vis, params = visibility_sql()
-    params["ws"] = workspace
-    return frappe.db.sql(
-        f"""SELECT COUNT(*) FROM `tabHub Ticket`
-            WHERE workspace = %(ws)s
-              AND status IN ('Open', 'In Progress', 'In Review'){vis}""",
-        params,
-    )[0][0]
+    rows = frappe.db.sql(
+        f"""SELECT workspace, COUNT(*) n FROM `tabHub Ticket`
+            WHERE status IN ('Open', 'In Progress', 'In Review'){vis}
+            GROUP BY workspace""",
+        params, as_dict=True,
+    )
+    return {r.workspace: r.n for r in rows}
 
 
 @frappe.whitelist()
@@ -33,6 +35,7 @@ def list_workspaces():
     user = frappe.session.user
 
     out = []
+    counts = _open_counts()
     for name in frappe.get_all("Hub Workspace", pluck="name",
                                order_by="is_default desc, creation asc"):
         ws = frappe.get_cached_doc("Hub Workspace", name)
@@ -47,7 +50,7 @@ def list_workspaces():
             "is_member": user in members,
             "members": members,
             "member_count": len(members),
-            "open_count": _open_count(ws.name),
+            "open_count": counts.get(ws.name, 0),
             "stages": [
                 {"stage_name": s.stage_name, "maps_to": s.maps_to,
                  "color": s.color or "#78716c"}

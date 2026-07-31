@@ -61,24 +61,28 @@
       <header
         class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-ink-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-3"
       >
-        <div class="flex items-center gap-2 md:hidden">
-          <img :src="logoSrc" alt="Justyol" class="h-4 w-auto" />
-          <span class="text-[10px] font-bold text-brand-600 tracking-widest uppercase mt-0.5">
+        <!-- min-w-0 + truncate: a long localized title used to push the
+             action cluster off the edge at 375px -->
+        <div class="flex items-center gap-2 md:hidden min-w-0 flex-1">
+          <img :src="logoSrc" alt="Justyol" class="h-4 w-auto shrink-0" />
+          <span class="text-[10px] font-bold text-brand-600 tracking-wide uppercase mt-0.5 truncate">
             {{ currentTitle }}
           </span>
         </div>
 
-        <div class="hidden md:block text-sm font-semibold text-ink-700">
+        <div class="hidden md:block text-sm font-semibold text-ink-700 min-w-0 truncate">
           {{ currentTitle }}
         </div>
 
-        <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-1.5 shrink-0">
           <!-- language toggle — EN | ع | FR, follows the user's ERPNext language until changed -->
-          <div class="inline-flex rounded-lg border border-ink-200 overflow-hidden mr-1 rtl:mr-0 rtl:ml-1">
+          <div class="hidden sm:inline-flex rounded-lg border border-ink-200 overflow-hidden mr-1 rtl:mr-0 rtl:ml-1">
             <button
               v-for="l in LOCALES"
               :key="l.code"
               :title="l.name"
+              :aria-label="l.name"
+              :aria-pressed="String(locale === l.code)"
               class="px-2 py-1 text-[11px] font-bold transition-colors"
               :class="locale === l.code ? 'bg-brand-500 text-white' : 'bg-white text-ink-500 hover:bg-ink-50'"
               @click="setLocale(l.code)"
@@ -86,11 +90,19 @@
               {{ l.label }}
             </button>
           </div>
+          <!-- phones get a compact cycle button instead of three -->
+          <button
+            class="sm:hidden w-9 h-9 grid place-items-center rounded-xl border border-ink-200 text-[11px] font-bold text-ink-600"
+            :aria-label="t('Language')"
+            @click="cycleLocale"
+          >
+            {{ currentLocaleLabel }}
+          </button>
           <NotificationBell />
-          <button class="btn-primary" @click="ui.openCreate()">
+          <button class="btn-primary" :aria-label="t('New Ticket')" @click="ui.openCreate()">
           <span class="text-base leading-none">+</span>
           <span class="hidden sm:inline">{{ t("New Ticket") }}</span>
-          <span class="sm:hidden">{{ t("New") }}</span>
+          <span class="sr-only sm:hidden">{{ t("New") }}</span>
           </button>
         </div>
       </header>
@@ -106,23 +118,28 @@
         </router-view>
       </main>
 
-      <!-- mobile bottom tab bar — app-like navigation -->
+      <!-- mobile bottom tab bar — app-like navigation. Scrolls horizontally
+           so managers reach every page (Teams/Command included) instead of
+           having them hidden with no mobile route in. -->
       <nav
-        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-ink-200 flex"
+        class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur border-t border-ink-200 flex overflow-x-auto scroll-thin"
         style="padding-bottom: env(safe-area-inset-bottom)"
       >
         <router-link
-          v-for="item in nav.filter((i) => !i.desktopOnly)"
+          v-for="item in nav"
           :key="item.to"
           :to="item.to"
-          class="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 min-h-[56px] transition-colors"
+          class="flex-1 shrink-0 min-w-[64px] flex flex-col items-center gap-0.5 pt-2 pb-1.5 min-h-[56px] transition-colors"
           :class="isActive(item.to) ? 'text-brand-600' : 'text-ink-400'"
+          :aria-current="isActive(item.to) ? 'page' : undefined"
         >
           <span
             class="px-3 py-1 rounded-full transition-colors"
             :class="isActive(item.to) ? 'bg-brand-100/80' : ''"
           ><NavIcon :name="item.icon" :size="19" /></span>
-          <span class="text-[10px] font-semibold">{{ item.short || item.label }}</span>
+          <span class="text-[10px] font-semibold max-w-full truncate px-1">
+            {{ item.short || item.label }}
+          </span>
         </router-link>
       </nav>
     </div>
@@ -167,8 +184,8 @@ const nav = computed(() =>
     { to: "/requests", label: t("Requests"), icon: "send" },
     { to: "/board", label: t("Board"), icon: "board" },
     { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
-    { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true, desktopOnly: true },
-    { to: "/command", label: t("Command"), icon: "gauge", managerOnly: true, desktopOnly: true },
+    { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true },
+    { to: "/command", label: t("Command"), icon: "gauge", managerOnly: true },
     { to: "/settings", label: t("Settings"), icon: "settings" },
   ].filter((i) => !i.managerOnly || isManager())
 );
@@ -188,4 +205,12 @@ function isActive(to) {
   return route.path.startsWith(to);
 }
 const currentTitle = computed(() => nav.value.find((n) => isActive(n.to))?.label || t("Task Hub"));
+
+const currentLocaleLabel = computed(
+  () => LOCALES.find((l) => l.code === locale.value)?.label || "EN"
+);
+function cycleLocale() {
+  const i = LOCALES.findIndex((l) => l.code === locale.value);
+  setLocale(LOCALES[(i + 1) % LOCALES.length].code);
+}
 </script>

@@ -2,8 +2,8 @@
   <div class="max-w-6xl mx-auto space-y-6">
     <div class="flex items-center justify-between gap-3 flex-wrap">
       <p class="text-sm text-ink-500">
-        Performance per department — resolution speed and SLA discipline, last
-        <b>{{ days }}</b> days.
+        {{ t("Performance per department — resolution speed and SLA discipline, last") }}
+        <b>{{ days }}</b> {{ t("days.") }}
       </p>
       <div class="flex items-center gap-2">
         <div class="inline-flex rounded-xl border border-ink-200 overflow-hidden">
@@ -26,8 +26,9 @@
         <button
           v-for="d in [7, 30, 90]"
           :key="d"
-          class="px-3 py-1.5 rounded-full text-xs font-semibold border transition"
+          class="px-3 py-1.5 rounded-full text-xs font-semibold border transition disabled:opacity-50"
           :class="days === d ? 'bg-brand-50 border-brand-300 text-brand-700' : 'bg-white border-ink-200 text-ink-500 hover:border-ink-300'"
+          :disabled="loading"
           @click="days = d; load()"
         >
           {{ d }}d
@@ -55,7 +56,7 @@
               class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold text-white shrink-0"
               :style="{ background: avatarColor(pn.user) }"
             >{{ initials(pn.user) }}</span>
-            <span class="w-36 truncate text-sm text-ink-800 shrink-0">{{ pn.full_name }}</span>
+            <span class="w-20 sm:w-36 truncate text-sm text-ink-800 shrink-0">{{ pn.full_name }}</span>
             <div class="flex-1 h-4 rounded-full bg-ink-100 overflow-hidden flex">
               <div
                 v-for="p in ['Urgent', 'High', 'Medium', 'Low']"
@@ -96,7 +97,7 @@
       <button
         v-for="d in rows"
         :key="d.key"
-        class="card card-hover p-5 text-left"
+        class="card card-hover p-5 text-left rtl:text-right"
         :class="selected === d.key ? '!border-brand-400 ring-2 ring-brand-200' : ''"
         @click="select(d.key)"
       >
@@ -135,7 +136,7 @@
           <div class="flex items-center justify-between text-[11px] mb-1">
             <span class="text-ink-400">{{ t("SLA on-time") }}</span>
             <span class="font-semibold" :style="{ color: complianceColor(d.sla_compliance_pct) }">
-              {{ d.sla_compliance_pct != null ? d.sla_compliance_pct + "%" : "no data" }}
+              {{ d.sla_compliance_pct != null ? d.sla_compliance_pct + "%" : t("no data") }}
             </span>
           </div>
           <div class="h-1.5 rounded-full bg-ink-100 overflow-hidden">
@@ -151,8 +152,8 @@
       </button>
     </div>
 
-    <p v-if="!rows.length && !loading" class="text-sm text-ink-400 text-center py-8">
-      No department activity yet.
+    <p v-if="!rows.length && !loading && mode !== 'workload'" class="text-sm text-ink-400 text-center py-8">
+      {{ t("No department activity yet.") }}
     </p>
 
     <!-- employee drill-down -->
@@ -168,7 +169,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
+            <tr class="bg-ink-50 text-ink-500 text-left rtl:text-right text-xs uppercase tracking-wide">
               <th class="px-5 py-2.5 font-semibold">{{ t("Person") }}</th>
               <th class="px-3 py-2.5 font-semibold">{{ t("Resolved") }}</th>
               <th class="px-3 py-2.5 font-semibold">{{ t("Open now") }}</th>
@@ -209,7 +210,7 @@
             </tr>
             <tr v-if="!employees.length && !empLoading">
               <td colspan="7" class="px-5 py-8 text-center text-ink-400">
-                No linked employees found for this department.
+                {{ t("No linked employees found for this department.") }}
               </td>
             </tr>
           </tbody>
@@ -276,22 +277,28 @@ const rows = computed(() =>
     : departments.value.map((d) => ({ ...d, key: d.department }))
 );
 
+let loadToken = 0;
+
 async function load() {
+  const token = ++loadToken;
   loading.value = true;
   error.value = "";
   try {
     if (mode.value === "workspaces") {
       const res = await getWorkspaceScorecard(days.value);
+      if (token !== loadToken) return;
       wsRows.value = res.workspaces || [];
     } else {
       const res = await getDepartmentScorecard(days.value);
+      if (token !== loadToken) return;
       departments.value = res.departments || [];
     }
+    if (token !== loadToken) return;  // a newer period/mode click won
     if (selected.value) await loadEmployees(selected.value);
   } catch (e) {
-    error.value = e.message || "Could not load scorecards";
+    if (token === loadToken) error.value = e.message || "Could not load scorecards";
   } finally {
-    loading.value = false;
+    if (token === loadToken) loading.value = false;
   }
 }
 

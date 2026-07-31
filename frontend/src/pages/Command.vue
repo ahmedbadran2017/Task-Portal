@@ -74,7 +74,7 @@
           >
             <span>{{ w.icon }}</span>
             <span class="flex-1 text-sm text-ink-800 truncate">{{ w.name }}</span>
-            <span v-if="w.breached" class="text-[11px] font-bold text-rose-600">⚠ {{ w.breached }}</span>
+            <span v-if="w.breached" class="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600"><NavIcon name="warning" :size="11" /> {{ w.breached }}</span>
             <span class="text-sm font-bold tabular-nums" :style="{ color: w.color }">{{ w.open }}</span>
           </button>
           <p v-if="!(d.workspaces || []).length" class="px-5 py-6 text-sm text-ink-400">
@@ -123,20 +123,20 @@
                 {{ g.goal_name }}
                 <span class="text-[11px] text-ink-400">· {{ g.workspace || t("All workspaces") }}</span>
               </span>
-              <span class="text-[11px] font-bold" :style="{ color: GOAL_META[g.status].color }">
-                {{ t(GOAL_META[g.status].label) }}
+              <span class="text-[11px] font-bold" :style="{ color: goalMeta(g).color }">
+                {{ t(goalMeta(g).label) }}
               </span>
               <span class="text-xs tabular-nums text-ink-600">
                 {{ g.current }}/{{ g.target_value }}{{ g.metric === "SLA on-time %" ? "%" : "" }}
               </span>
-              <button class="opacity-0 group-hover:opacity-100 btn-ghost !px-1.5 !py-0.5 text-xs" @click="startEditGoal(g)">
+              <button class="md:opacity-0 md:group-hover:opacity-100 btn-ghost !px-1.5 !py-0.5 text-xs" @click="startEditGoal(g)">
                 <NavIcon name="pencil" :size="11" />
               </button>
-              <button class="opacity-0 group-hover:opacity-100 text-ink-300 hover:text-rose-600 text-xs" @click="removeGoal(g)">✕</button>
+              <button class="md:opacity-0 md:group-hover:opacity-100 text-ink-300 hover:text-rose-600 text-xs" @click="removeGoal(g)"><NavIcon name="x" :size="12" /></button>
             </div>
             <div class="relative h-2 rounded-full bg-ink-100 overflow-hidden mt-1">
               <div class="h-full rounded-full transition-all duration-500"
-                   :style="{ width: g.progress_pct + '%', background: GOAL_META[g.status].color }" />
+                   :style="{ width: g.progress_pct + '%', background: goalMeta(g).color }" />
               <!-- where the goal *should* be by today -->
               <div class="absolute top-0 bottom-0 w-0.5 bg-ink-400/60" :style="{ left: g.time_pct + '%' }" />
             </div>
@@ -165,7 +165,7 @@ import { getMethod, callMethod } from "@/composables/useApi";
 const { t } = useI18n();
 const toast = useToast();
 const router = useRouter();
-const { workspaces } = useWorkspaces();
+const { workspaces, setCurrent } = useWorkspaces();
 
 const d = ref({});
 const goals = ref([]);
@@ -175,11 +175,16 @@ const goalEdit = ref(null);
 const savingGoal = ref(false);
 let timer = null;
 
+const GOAL_FALLBACK = { label: "On track", color: "#64748b" };
 const GOAL_META = {
   done: { label: "Done", color: "#059669" },
   on_track: { label: "On track", color: "#2563eb" },
   behind: { label: "Behind", color: "#e11d48" },
 };
+
+function goalMeta(g) {
+  return GOAL_META[g?.status] || GOAL_FALLBACK;
+}
 
 const maxDay = computed(() =>
   Math.max(1, ...(d.value.orders_by_day || []).map((r) => r.n))
@@ -191,8 +196,8 @@ function money(v) {
 }
 
 function goWorkspace(name) {
-  localStorage.setItem("th_ws", name);
-  router.push("/board").then(() => window.location.reload());
+  setCurrent(name);          // keeps the in-memory ref in sync
+  router.push("/board");     // SPA navigation — no full reload
 }
 
 async function load() {

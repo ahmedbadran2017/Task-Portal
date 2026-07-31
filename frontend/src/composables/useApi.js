@@ -129,24 +129,52 @@ export async function callMethod(method, args = {}) {
 }
 
 // ---- formatting helpers -------------------------------------------------
+// Dates and relative times follow the active UI language; the locale is read
+// from storage rather than imported so this module stays dependency-free.
+const INTL_LOCALES = { ar: "ar-EG", fr: "fr-FR", en: "en-GB" };
+
+function activeLocale() {
+  try {
+    const l = localStorage.getItem("th_lang") ||
+      (typeof window !== "undefined" && window.user_lang) || "en";
+    return String(l).slice(0, 2);
+  } catch {
+    return "en";
+  }
+}
+
+function intlLocale() {
+  return INTL_LOCALES[activeLocale()] || "en-GB";
+}
+
+// Intl.RelativeTimeFormat handles plurals and word order per language, which
+// hand-built "3 hours ago" strings never did.
 export function relTime(value) {
   if (!value) return "";
   const d = new Date(String(value).replace(" ", "T"));
   if (isNaN(d.getTime())) return "";
   const diff = (Date.now() - d.getTime()) / 1000;
   const abs = Math.abs(diff);
-  const fut = diff < 0;
-  const fmt = (n, u) => `${n} ${u}${n === 1 ? "" : "s"} ${fut ? "left" : "ago"}`;
-  if (abs < 60) return fut ? "soon" : "just now";
-  if (abs < 3600) return fmt(Math.round(abs / 60), "min");
-  if (abs < 86400) return fmt(Math.round(abs / 3600), "hour");
-  if (abs < 2592000) return fmt(Math.round(abs / 86400), "day");
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const sign = diff < 0 ? 1 : -1;
+  let rtf;
+  try {
+    rtf = new Intl.RelativeTimeFormat(intlLocale(), { numeric: "auto" });
+  } catch {
+    rtf = new Intl.RelativeTimeFormat("en-GB", { numeric: "auto" });
+  }
+  if (abs < 60) return rtf.format(sign * Math.round(abs), "second");
+  if (abs < 3600) return rtf.format(sign * Math.round(abs / 60), "minute");
+  if (abs < 86400) return rtf.format(sign * Math.round(abs / 3600), "hour");
+  if (abs < 2592000) return rtf.format(sign * Math.round(abs / 86400), "day");
+  return d.toLocaleDateString(intlLocale(), { day: "2-digit", month: "short" });
 }
 
 export function fmtDate(value) {
   if (!value) return "—";
   const d = new Date(String(value).replace(" ", "T"));
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return d.toLocaleDateString(intlLocale(),
+    { day: "2-digit", month: "short", year: "numeric" });
 }
+
+export { activeLocale, intlLocale };

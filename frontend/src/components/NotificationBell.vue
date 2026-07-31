@@ -2,7 +2,7 @@
   <div class="relative" ref="rootEl">
     <button
       class="relative w-9 h-9 grid place-items-center rounded-xl text-ink-500 hover:bg-ink-100 transition"
-      title="Notifications"
+      :title="t('Notifications')"
       @click="toggle"
     >
       <NavIcon name="bell" :size="18" />
@@ -14,7 +14,7 @@
 
     <div
       v-if="open"
-      class="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-ink-200 rounded-2xl shadow-xl z-50 overflow-hidden"
+      class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white border border-ink-200 rounded-2xl shadow-xl z-50 overflow-hidden"
     >
       <div class="flex items-center justify-between px-4 py-3 border-b border-ink-100">
         <span class="text-sm font-bold text-ink-900">{{ t("Notifications") }}</span>

@@ -53,14 +53,14 @@
     </svg>
 
     <div v-else class="text-center py-8">
-      <div class="text-3xl mb-2">📈</div>
+      <div class="text-3xl mb-2"></div>
       <p class="text-sm text-ink-400">Not enough history yet — trends appear after the first week.</p>
     </div>
 
     <!-- tooltip -->
     <div
       v-if="hover !== null && series[hover]"
-      class="absolute top-1 right-1 card px-3 py-2 text-xs shadow-md"
+      class="absolute top-1 right-1 rtl:right-auto rtl:left-1 card px-3 py-2 text-xs shadow-md"
     >
       <div class="font-semibold text-ink-800 mb-1">Week of {{ series[hover].start || series[hover].week }}</div>
       <div v-for="s in SERIES" :key="s.key" class="flex items-center gap-1.5 text-ink-600">
@@ -74,6 +74,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useI18n } from "@/composables/useI18n";
+import { intlLocale } from "@/composables/useApi";
 
 const props = defineProps({ series: { type: Array, default: () => [] } });
 const { t } = useI18n();
@@ -120,6 +121,6 @@ function weekLabel(w) {
   if (!w.start) return "";
   const d = new Date(w.start);
   if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  return d.toLocaleDateString(intlLocale(), { day: "2-digit", month: "short" });
 }
 </script>

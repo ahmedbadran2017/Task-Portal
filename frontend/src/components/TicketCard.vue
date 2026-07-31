@@ -13,7 +13,7 @@
         <span class="text-[11px] font-mono text-ink-400 truncate">{{ ticket.name }}</span>
       </div>
       <Pill
-        :label="priorityMeta.label"
+        :label="t(ticket.priority)"
         :color="priorityMeta.color"
         :bg="priorityMeta.bg"
         :ring="priorityMeta.ring"
@@ -72,8 +72,11 @@
 import { computed } from "vue";
 import Pill from "./Pill.vue";
 import NavIcon from "./NavIcon.vue";
+import { useI18n } from "@/composables/useI18n";
 import { PRIORITY_META, PORTAL_META } from "@/composables/useTickets";
 import { relTime, fmtDate } from "@/composables/useApi";
+
+const { t } = useI18n();
 
 const props = defineProps({
   ticket: { type: Object, required: true },

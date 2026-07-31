@@ -8,7 +8,7 @@
       <div class="card w-full max-w-xl p-5 sm:p-6 mt-0 sm:mt-6 rounded-none sm:rounded-2xl min-h-screen sm:min-h-0">
         <div class="flex items-center justify-between mb-5">
           <h2 class="text-lg font-semibold text-ink-900">{{ t("New Ticket") }}</h2>
-          <button class="btn-ghost !px-2" @click="close">✕</button>
+          <button class="btn-ghost !px-2" @click="close"><NavIcon name="x" :size="12" /></button>
         </div>
 
         <div class="space-y-4">
@@ -78,7 +78,7 @@
             <div>
               <label class="label">{{ t("Source Portal") }}</label>
               <select v-model="form.source_portal" class="input">
-                <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
+                <option v-for="p in PORTALS" :key="p" :value="p">{{ t(p) }}</option>
               </select>
             </div>
             <div>
@@ -140,7 +140,7 @@
                 class="inline-flex items-center gap-1.5 bg-ink-50 border border-ink-200 rounded-lg px-2.5 py-1 text-xs text-ink-700"
               >
                 {{ f.name }}
-                <button class="text-ink-400 hover:text-rose-600" type="button" @click="files.splice(i, 1)">✕</button>
+                <button class="text-ink-400 hover:text-rose-600" type="button" @click="files.splice(i, 1)"><NavIcon name="x" :size="12" /></button>
               </span>
             </div>
           </div>
@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, nextTick } from "vue";
+import { reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
 import AiPolish from "@/components/AiPolish.vue";
 import NavIcon from "@/components/NavIcon.vue";
@@ -285,6 +285,9 @@ watch(
       files.value = [];
       similar.value = [];
       triageReason.value = "";
+      // A template left selected from a previous session would silently
+      // route the next unrelated ticket through createFromTemplate.
+      templateName.value = "";
       // Default to the active workspace (or the system default).
       if (!form.workspace) {
         form.workspace =
@@ -345,6 +348,13 @@ async function submit() {
     saving.value = false;
   }
 }
+
+// Esc closes the overlay — keyboard users had no way out.
+function onEscKey(e) {
+  if (e.key === "Escape" && ui.state.createOpen) close();
+}
+onMounted(() => document.addEventListener("keydown", onEscKey));
+onUnmounted(() => document.removeEventListener("keydown", onEscKey));
 </script>
 
 <style scoped>

@@ -192,8 +192,12 @@ def _detect_items_missing_content(s, budget):
              AND (image IS NULL OR image = ''
                   OR description IS NULL OR description = ''
                   OR CHAR_LENGTH(description) < 20)
-           ORDER BY creation DESC""",
-        (since,), as_dict=True,
+           ORDER BY creation DESC
+           LIMIT %s""",
+        # Only `budget` tickets can be created per run; scanning far beyond
+        # that just loads a bulk import into memory. Head-room covers rows
+        # skipped by the dedupe check below.
+        (since, budget * 20), as_dict=True,
     )
     workspace = _content_workspace()
     created = 0
@@ -250,6 +254,7 @@ def notify_sla_risks():
             "assigned_to": ["is", "set"],
         },
         fields=["name", "title", "priority", "assigned_to", "sla_deadline", "creation"],
+        limit_page_length=500,
     ):
         deadline = get_datetime(t.sla_deadline)
         total = (deadline - get_datetime(t.creation)).total_seconds()
@@ -258,15 +263,23 @@ def notify_sla_risks():
             continue
         hours_left = max(1, int(left // 3600))
         from task_hub.notify import push
-        push(
-            t.assigned_to, t.name, "sla_warning",
-            f"SLA warning: ~{hours_left}h left on {t.name} — {t.title}",
-            email_subject=f"[Task Hub] {t.name} nears its SLA ({hours_left}h left)",
-            email_html=(f"<p><b>{frappe.utils.escape_html(t.title)}</b> ({t.priority}) breaches its SLA "
-                        f"in about <b>{hours_left}h</b>.</p>"),
-        )
+        try:
+            push(
+                t.assigned_to, t.name, "sla_warning",
+                f"SLA warning: ~{hours_left}h left on {t.name} — {t.title}",
+                email_subject=f"[Task Hub] {t.name} nears its SLA ({hours_left}h left)",
+                email_html=(f"<p><b>{frappe.utils.escape_html(t.title)}</b> ({t.priority}) breaches its SLA "
+                            f"in about <b>{hours_left}h</b>.</p>"),
+            )
+        except Exception:
+            frappe.log_error(title=f"Hub SLA warning {t.name}",
+                             message=frappe.get_traceback()[:2000])
+            continue
         frappe.db.set_value("Hub Ticket", t.name, "sla_warning_sent", 1,
                             update_modified=False)
+        # Commit per ticket: the mail has already left, so a later failure
+        # must not roll the flag back and re-send the same warning next hour.
+        frappe.db.commit()
 
     # Escalations — breached and not yet escalated.
     breached = frappe.get_all(
@@ -277,6 +290,7 @@ def notify_sla_risks():
             "sla_breach_notified": 0,
         },
         fields=["name", "title", "priority", "source_portal", "assigned_to"],
+        limit_page_length=200,
     )
     if breached:
         from task_hub.notify import push
@@ -311,9 +325,16 @@ def send_monthly_scorecard():
         return
     from task_hub.api.scorecards import department_scorecard, employee_scorecard
 
-    frappe.set_user("Administrator")
-    depts = department_scorecard(days=30)["departments"]
-    people = employee_scorecard(days=30)["employees"][:10]
+    # The scorecards are manager-gated; run them as Administrator but ALWAYS
+    # restore, or every scheduler job queued behind this one in the same
+    # worker inherits Administrator rights.
+    previous_user = frappe.session.user
+    try:
+        frappe.set_user("Administrator")
+        depts = department_scorecard(days=30)["departments"]
+        people = employee_scorecard(days=30)["employees"][:10]
+    finally:
+        frappe.set_user(previous_user)
     if not depts and not people:
         return
 

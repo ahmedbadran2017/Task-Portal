@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-2xl mx-auto space-y-6">
     <div v-if="!canEdit" class="card p-4 text-sm text-ink-500 bg-ink-50">
-      Settings are read-only for your role — ask a Task Hub manager to change them.
+      {{ t("Settings are read-only for your role — ask a Task Hub manager to change them.") }}
     </div>
 
     <div v-if="error" class="card p-4 text-sm text-rose-600 bg-rose-50 border-rose-200">
@@ -9,12 +9,11 @@
     </div>
 
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-1">SLA budgets</h3>
+      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("SLA budgets") }}</h3>
       <p class="text-xs text-ink-400 mb-5">
-        Hours a ticket may stay open per priority before it counts as breached.
-        Changing these only affects tickets created or re-prioritised afterwards.
+        {{ t("Hours a ticket may stay open per priority before it counts as breached.") }}
       </p>
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid sm:grid-cols-2 gap-4">
         <div v-for="f in slaFields" :key="f.key">
           <label class="label flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full" :style="{ background: f.color }" />
@@ -25,36 +24,36 @@
               v-model.number="form[f.key]"
               type="number"
               min="1"
-              class="input pr-14"
+              class="input pr-14 rtl:pr-3 rtl:pl-14"
               :disabled="!canEdit"
             />
-            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-400">hours</span>
+            <span class="absolute right-3 rtl:right-auto rtl:left-3 top-1/2 -translate-y-1/2 text-xs text-ink-400">{{ t("hours") }}</span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-5">Defaults & behaviour</h3>
-      <div class="grid grid-cols-2 gap-4">
+      <h3 class="text-sm font-bold text-ink-900 mb-5">{{ t("Defaults & behaviour") }}</h3>
+      <div class="grid sm:grid-cols-2 gap-4">
         <div>
-          <label class="label">Default type</label>
+          <label class="label">{{ t("Default type") }}</label>
           <select v-model="form.default_ticket_type" class="input" :disabled="!canEdit">
-            <option v-for="t in TYPES" :key="t" :value="t">{{ t }}</option>
+            <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
           </select>
         </div>
         <div>
-          <label class="label">Default priority</label>
+          <label class="label">{{ t("Default priority") }}</label>
           <select v-model="form.default_priority" class="input" :disabled="!canEdit">
-            <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
+            <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
           </select>
         </div>
         <div class="col-span-2">
-          <label class="label">Who can be assigned tickets</label>
+          <label class="label">{{ t("Who can be assigned tickets") }}</label>
           <select v-model="form.assignee_scope" class="input" :disabled="!canEdit">
-            <option>Employees only</option>
-            <option>Task Hub members</option>
-            <option>All system users</option>
+            <option value="Employees only">{{ t("Employees only") }}</option>
+            <option value="Task Hub members">{{ t("Task Hub members") }}</option>
+            <option value="All system users">{{ t("All system users") }}</option>
           </select>
           <p class="text-[11px] text-ink-400 mt-1.5">
             "Employees only" keeps supplier/customer logins and test accounts out
@@ -62,7 +61,7 @@
           </p>
         </div>
         <div class="col-span-2">
-          <label class="label">Auto-refresh (seconds, 0 = off)</label>
+          <label class="label">{{ t("Auto-refresh (seconds, 0 = off)") }}</label>
           <input
             v-model.number="form.auto_refresh_seconds"
             type="number"
@@ -79,10 +78,9 @@
     </div>
 
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-1">Auto-tickets</h3>
+      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Auto-tickets") }}</h3>
       <p class="text-xs text-ink-400 mb-5">
-        Daily rules that open tickets from live ERP data. Off by default — enable
-        deliberately once the hub is in daily use.
+        {{ t("Daily rules that open tickets from live ERP data.") }}
       </p>
       <div class="space-y-4">
         <div class="flex items-center justify-between gap-4">
@@ -123,7 +121,7 @@
     </div>
 
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-5">AI Assist</h3>
+      <h3 class="text-sm font-bold text-ink-900 mb-5">{{ t("AI Assist") }}</h3>
       <div class="flex items-center justify-between gap-4">
         <label class="text-sm text-ink-700 flex items-start gap-1.5">
           <NavIcon name="sparkles" :size="14" class="mt-0.5 text-brand-500 shrink-0" />
@@ -137,7 +135,7 @@
     </div>
 
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-5">Notifications</h3>
+      <h3 class="text-sm font-bold text-ink-900 mb-5">{{ t("Notifications") }}</h3>
       <div class="space-y-4">
         <div class="flex items-center justify-between gap-4">
           <label class="text-sm text-ink-700">Email the assignee when a ticket is assigned</label>
@@ -199,18 +197,18 @@
 
       <!-- editor -->
       <div v-if="wsForm" class="border border-ink-200 rounded-xl p-4 mb-4 space-y-3 bg-ink-50/50">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
           <div>
-            <label class="label">Name *</label>
+            <label class="label">{{ t("Name") }} *</label>
             <input v-model="wsForm.workspace_name" class="input" :disabled="!!wsForm.name" />
           </div>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid sm:grid-cols-2 gap-2">
             <div>
-              <label class="label">Icon</label>
+              <label class="label">{{ t("Icon") }}</label>
               <input v-model="wsForm.icon" class="input" maxlength="4" />
             </div>
             <div>
-              <label class="label">Color</label>
+              <label class="label">{{ t("Color") }}</label>
               <input v-model="wsForm.color" type="color" class="input !p-1 h-[38px]" />
             </div>
           </div>
@@ -240,7 +238,7 @@
                 <option v-for="s in STATUSES" :key="s" :value="s">{{ t(s) }}</option>
               </select>
               <input v-model="st.color" type="color" class="w-9 h-9 rounded-lg border border-ink-200 p-0.5 bg-white" />
-              <button class="text-ink-300 hover:text-rose-600" @click="wsForm.stages.splice(i, 1)">✕</button>
+              <button class="text-ink-300 hover:text-rose-600" @click="wsForm.stages.splice(i, 1)"><NavIcon name="x" :size="12" /></button>
             </div>
           </div>
           <button class="btn-ghost !py-1 text-xs mt-2" @click="wsForm.stages.push({ stage_name: '', maps_to: 'In Progress', color: '#a16207' })">
@@ -274,7 +272,7 @@
             v-if="canEdit && !w.is_default"
             class="text-ink-300 hover:text-rose-600 text-sm"
             @click="removeWs(w)"
-          >✕</button>
+          ><NavIcon name="x" :size="12" /></button>
         </div>
       </div>
     </div>
@@ -292,7 +290,7 @@
       </p>
 
       <div v-if="showRuleForm" class="border border-ink-200 rounded-xl p-4 mb-4 space-y-3 bg-ink-50/50">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
           <div class="col-span-2">
             <label class="label">{{ t("Title") }} *</label>
             <input v-model="ruleForm.title" class="input" />
@@ -310,7 +308,7 @@
             </select>
           </div>
           <div>
-            <label class="label">Frequency</label>
+            <label class="label">{{ t("Frequency") }}</label>
             <select v-model="ruleForm.frequency" class="input">
               <option value="Daily">{{ t("Daily") }}</option>
               <option value="Weekly">{{ t("Weekly") }}</option>
@@ -318,13 +316,13 @@
             </select>
           </div>
           <div v-if="ruleForm.frequency === 'Weekly'">
-            <label class="label">Weekday</label>
+            <label class="label">{{ t("Weekday") }}</label>
             <select v-model="ruleForm.weekday" class="input">
-              <option v-for="d in WEEKDAYS" :key="d">{{ d }}</option>
+              <option v-for="d in WEEKDAYS" :key="d" :value="d">{{ t(d) }}</option>
             </select>
           </div>
           <div v-if="ruleForm.frequency === 'Monthly'">
-            <label class="label">Day of month</label>
+            <label class="label">{{ t("Day of month") }}</label>
             <input v-model.number="ruleForm.day_of_month" type="number" min="1" max="28" class="input" />
           </div>
           <div class="col-span-2">
@@ -333,7 +331,7 @@
           </div>
         </div>
         <div class="flex justify-end gap-2">
-          <button class="btn-outline !py-1.5" @click="showRuleForm = false">{{ t("Cancel") }}</button>
+          <button class="btn-outline !py-1.5" @click="resetRuleForm">{{ t("Cancel") }}</button>
           <button class="btn-primary !py-1.5" :disabled="!ruleForm.title.trim() || savingRule" @click="saveRule">
             {{ t("Save") }}
           </button>
@@ -357,7 +355,7 @@
               <template v-if="r.last_run"> · last: {{ r.last_run }}</template>
             </div>
           </div>
-          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeRule(r)">✕</button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeRule(r)"><NavIcon name="x" :size="12" /></button>
         </div>
       </div>
       <p v-else class="text-xs text-ink-400">No rules yet.</p>
@@ -377,9 +375,9 @@
       </p>
 
       <div v-if="tplForm" class="border border-ink-200 rounded-xl p-4 mb-4 space-y-3 bg-ink-50/50">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
           <div>
-            <label class="label">Name *</label>
+            <label class="label">{{ t("Name") }} *</label>
             <input v-model="tplForm.template_name" class="input" :disabled="!!tplForm.name" />
           </div>
           <div>
@@ -441,10 +439,10 @@
             </div>
           </div>
           <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditTpl(tp)"><NavIcon name="pencil" :size="12" /></button>
-          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeTpl(tp)">✕</button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeTpl(tp)"><NavIcon name="x" :size="12" /></button>
         </div>
       </div>
-      <p v-else class="text-xs text-ink-400">No templates yet.</p>
+      <p v-else class="text-xs text-ink-400">{{ t("No templates yet.") }}</p>
     </div>
 
     <!-- request forms: work intake between departments -->
@@ -460,7 +458,7 @@
       </p>
 
       <div v-if="formEdit" class="border border-brand-200 bg-brand-50/40 rounded-xl p-4 mb-4 space-y-3">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
           <div>
             <label class="label">{{ t("Form name") }} *</label>
             <input v-model="formEdit.form_name" class="input" :disabled="!!formEdit.name" />
@@ -472,7 +470,7 @@
             </select>
           </div>
           <div>
-            <label class="label">Icon</label>
+            <label class="label">{{ t("Icon") }}</label>
             <input v-model="formEdit.icon" class="input !w-20" maxlength="4" />
           </div>
           <div>
@@ -500,19 +498,19 @@
           <div v-for="(q, i) in formEdit.questions" :key="i" class="flex items-center gap-2 mb-2">
             <input v-model="q.question" class="input flex-1 !py-1.5 text-sm" :placeholder="t('Question')" />
             <select v-model="q.fieldtype" class="input !w-auto !py-1.5 text-sm">
-              <option>Text</option><option>Long Text</option><option>Select</option>
-              <option>Date</option><option>Number</option><option>Checkbox</option>
+              <option value="Text">{{ t("Text") }}</option><option value="Long Text">{{ t("Long Text") }}</option><option value="Select">{{ t("Select") }}</option>
+              <option value="Date">{{ t("Date") }}</option><option value="Number">{{ t("Number") }}</option><option value="Checkbox">{{ t("Checkbox") }}</option>
             </select>
             <input
               v-if="q.fieldtype === 'Select'"
               v-model="q.optionsText"
-              class="input !w-36 !py-1.5 text-sm"
+              class="input !w-24 sm:!w-36 !py-1.5 text-sm"
               :placeholder="t('a, b, c')"
             />
             <label class="flex items-center gap-1 text-xs text-ink-500 shrink-0">
               <input type="checkbox" v-model="q.required" class="rounded" /> *
             </label>
-            <button class="text-ink-300 hover:text-rose-600" @click="formEdit.questions.splice(i, 1)">✕</button>
+            <button class="text-ink-300 hover:text-rose-600" @click="formEdit.questions.splice(i, 1)"><NavIcon name="x" :size="12" /></button>
           </div>
           <button class="btn-outline !py-1 text-xs" @click="formEdit.questions.push({ question: '', fieldtype: 'Text', required: false, optionsText: '' })">
             + {{ t("Add") }}
@@ -545,7 +543,7 @@
             </div>
           </div>
           <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditForm(f)"><NavIcon name="pencil" :size="12" /></button>
-          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeForm(f)">✕</button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeForm(f)"><NavIcon name="x" :size="12" /></button>
         </div>
       </div>
       <p v-else class="text-xs text-ink-400">{{ t("No forms yet.") }}</p>
@@ -564,7 +562,7 @@
       </p>
 
       <div v-if="autoEdit" class="border border-brand-200 bg-brand-50/40 rounded-xl p-4 mb-4 space-y-3">
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid sm:grid-cols-2 gap-3">
           <div>
             <label class="label">{{ t("Rule name") }} *</label>
             <input v-model="autoEdit.rule_name" class="input" :disabled="!!autoEdit.name" />
@@ -636,7 +634,7 @@
             </div>
           </div>
           <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditAuto(r)"><NavIcon name="pencil" :size="12" /></button>
-          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeAuto(r)">✕</button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeAuto(r)"><NavIcon name="x" :size="12" /></button>
         </div>
       </div>
       <p v-else class="text-xs text-ink-400">{{ t("No rules yet.") }}</p>
@@ -652,7 +650,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, h } from "vue";
+import { reactive, ref, computed, onMounted, h } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useToast } from "@/composables/useToast";
@@ -807,7 +805,7 @@ const rules = ref([]);
 const users = ref([]);
 const showRuleForm = ref(false);
 const savingRule = ref(false);
-const ruleForm = reactive({
+const blankRule = () => ({
   title: "",
   ticket_type: "Task",
   priority: "Medium",
@@ -816,6 +814,14 @@ const ruleForm = reactive({
   day_of_month: 1,
   assigned_to: "",
 });
+const ruleForm = reactive(blankRule());
+
+// Full reset on save AND cancel — a partial reset used to reopen the form
+// pre-filled with an abandoned rule's frequency/priority.
+function resetRuleForm() {
+  Object.assign(ruleForm, blankRule());
+  showRuleForm.value = false;
+}
 
 async function loadRules() {
   try {
@@ -827,8 +833,7 @@ async function saveRule() {
   savingRule.value = true;
   try {
     await saveRecurringRule({ ...ruleForm, active: 1 });
-    showRuleForm.value = false;
-    Object.assign(ruleForm, { title: "", assigned_to: "" });
+    resetRuleForm();
     await loadRules();
     toast.success("Rule saved");
   } catch (e) {
@@ -898,20 +903,24 @@ const Toggle = {
         },
         [
           h("span", {
-            class: "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all",
-            style: { left: props.modelValue ? "18px" : "2px" },
+            class: [
+              "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all",
+              // start/end respect the document direction; `left` never did.
+              props.modelValue ? "start-[18px]" : "start-0.5",
+            ],
           }),
         ]
       );
   },
 };
 
-const slaFields = [
-  { key: "sla_urgent_hours", label: "Urgent", color: PRIORITY_META.Urgent.color },
-  { key: "sla_high_hours", label: "High", color: PRIORITY_META.High.color },
-  { key: "sla_medium_hours", label: "Medium", color: PRIORITY_META.Medium.color },
-  { key: "sla_low_hours", label: "Low", color: PRIORITY_META.Low.color },
-];
+// computed so the labels follow a live language switch
+const slaFields = computed(() => [
+  { key: "sla_urgent_hours", label: t("Urgent"), color: PRIORITY_META.Urgent.color },
+  { key: "sla_high_hours", label: t("High"), color: PRIORITY_META.High.color },
+  { key: "sla_medium_hours", label: t("Medium"), color: PRIORITY_META.Medium.color },
+  { key: "sla_low_hours", label: t("Low"), color: PRIORITY_META.Low.color },
+]);
 
 // --- request forms manager ---
 const formList = ref([]);

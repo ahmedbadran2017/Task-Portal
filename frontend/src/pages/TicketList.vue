@@ -14,7 +14,7 @@
       </select>
       <select v-model="filters.source_portal" class="input !w-auto" @change="reload">
         <option value="">{{ t("All portals") }}</option>
-        <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
+        <option v-for="p in PORTALS" :key="p" :value="p">{{ t(p) }}</option>
       </select>
       <select v-model="filters.priority" class="input !w-auto" @change="reload">
         <option value="">{{ t("Any priority") }}</option>
@@ -40,10 +40,10 @@
         class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold bg-brand-50 border border-brand-300 text-brand-700"
       >
         {{ filters.department }}
-        <button class="hover:text-rose-600" @click="filters.department = ''; reload()">✕</button>
+        <button class="hover:text-rose-600" :aria-label="t('Delete')" @click="filters.department = ''; reload()"><NavIcon name="x" :size="11" /></button>
       </span>
       <div class="flex-1" />
-      <button class="btn-outline !py-1.5 text-xs" @click="exportCsv">
+      <button class="btn-outline !py-1.5 text-xs" :disabled="exporting" :aria-label="t('Export CSV')" @click="exportCsv">
         <NavIcon name="download" :size="13" /> {{ t("Export CSV") }}
       </button>
       <span class="text-sm text-ink-400">{{ total }} {{ t("tickets") }}</span>
@@ -58,7 +58,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
+            <tr class="bg-ink-50 text-ink-500 text-left rtl:text-right text-xs uppercase tracking-wide">
               <th class="px-4 py-3 font-semibold">{{ t("Ticket") }}</th>
               <th class="px-3 py-3 font-semibold">{{ t("Portal") }}</th>
               <th class="px-3 py-3 font-semibold">{{ t("Priority") }}</th>
@@ -81,7 +81,7 @@
               </td>
               <td class="px-3 py-3">
                 <span class="text-xs font-medium" :style="{ color: portalColor(tk.source_portal) }">
-                  {{ tk.source_portal }}
+                  {{ t(tk.source_portal) }}
                 </span>
               </td>
               <td class="px-3 py-3">
@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import Pill from "@/components/Pill.vue";
 import NavIcon from "@/components/NavIcon.vue";
@@ -161,6 +161,7 @@ const ui = useUi();
 const { t } = useI18n();
 const { current: currentWsName } = useWorkspaces();
 const loading = ref(true);
+const exporting = ref(false);
 const error = ref("");
 const tickets = ref([]);
 const total = ref(0);
@@ -184,11 +185,12 @@ const filters = reactive({
 
 // The unassigned pool only means something to managers — everyone else's
 // list is already scoped to their own tickets.
-const quickChips = [
+// computed, so the labels follow a live language switch
+const quickChips = computed(() => [
   { key: "mine", label: t("Mine") },
   ...(isManager() ? [{ key: "unassigned", label: t("Unassigned") }] : []),
   { key: "breached_only", label: t("SLA breached") },
-];
+]);
 
 // Dashboard tiles deep-link here (?breached=1, ?mine=1, ?unassigned=1, ?status=…)
 function applyRouteQuery() {
@@ -241,8 +243,16 @@ function page(dir) {
 }
 
 async function exportCsv() {
+  if (exporting.value) return;
+  exporting.value = true;
   try {
-    const res = await listTickets({ ...cleaned(), limit: 1000, start: 0, order_by: "modified desc" });
+    // Must carry the active workspace, or an exporter scoped to one team
+    // silently downloads the whole company.
+    const res = await listTickets({
+      ...cleaned(),
+      workspace: currentWsName.value || undefined,
+      limit: 1000, start: 0, order_by: "modified desc",
+    });
     const rows = res.tickets || [];
     const cols = ["name", "title", "ticket_type", "priority", "status", "source_portal",
                   "department", "reported_by", "assigned_to", "due_date", "sla_deadline",
@@ -259,6 +269,8 @@ async function exportCsv() {
     URL.revokeObjectURL(a.href);
   } catch (e) {
     error.value = e.message || "Export failed";
+  } finally {
+    exporting.value = false;
   }
 }
 

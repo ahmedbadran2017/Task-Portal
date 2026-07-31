@@ -14,9 +14,19 @@ from frappe.utils.file_manager import save_file
 
 from task_hub.api.utils import (
     gate_read, can_edit_ticket, normalize_portal, visibility_sql,
-    can_view_ticket,
+    can_view_ticket, gate_view, safe_url,
     VALID_TYPES, VALID_PRIORITIES, VALID_STATUSES,
 )
+
+# Hard ceiling on any single page — an unbounded `limit` would let one
+# request pull the whole table.
+MAX_PAGE = 1000
+
+
+def _load_viewable(name):
+    """Load a ticket the caller is allowed to see (reporter/assignee/
+    watcher/manager)."""
+    return gate_view(frappe.get_doc("Hub Ticket", name))
 
 
 LIST_FIELDS = [
@@ -82,7 +92,7 @@ def create_ticket(**kwargs):
     doc.linked_doctype = data.get("linked_doctype") or None
     doc.linked_name = data.get("linked_name") or None
     doc.linked_label = data.get("linked_label") or None
-    doc.linked_url = data.get("linked_url") or None
+    doc.linked_url = safe_url(data.get("linked_url"))
     ws = data.get("workspace")
     if ws and frappe.db.exists("Hub Workspace", ws):
         doc.workspace = ws
@@ -118,12 +128,12 @@ def list_tickets(status=None, priority=None, source_portal=None,
         eq("department", department)
     if workspace:
         eq("workspace", workspace)
-    if due_from and due_to:
-        conds.append("due_date BETWEEN %(due_from)s AND %(due_to)s")
-        params.update(due_from=due_from, due_to=due_to)
-    elif due_from:
+    if due_from:
         conds.append("due_date >= %(due_from)s")
         params["due_from"] = due_from
+    if due_to:
+        conds.append("due_date <= %(due_to)s")
+        params["due_to"] = due_to
     if int(unassigned or 0):
         conds.append("COALESCE(assigned_to, '') = ''")
     if priority:
@@ -157,7 +167,7 @@ def list_tickets(status=None, priority=None, source_portal=None,
 
     where = " AND ".join(conds) + vis
     fields = ", ".join(f"`{f}`" for f in LIST_FIELDS)
-    params.update(limit=int(limit), start=int(start))
+    params.update(limit=max(1, min(MAX_PAGE, int(limit))), start=max(0, int(start)))
     rows = frappe.db.sql(
         f"""SELECT {fields} FROM `tabHub Ticket` WHERE {where}
             ORDER BY {order_by} LIMIT %(limit)s OFFSET %(start)s""",
@@ -173,11 +183,7 @@ def list_tickets(status=None, priority=None, source_portal=None,
 def get_ticket(name):
     """Full ticket incl. comments, activity timeline, and attachments."""
     gate_read()
-    doc = frappe.get_doc("Hub Ticket", name)
-    if not can_view_ticket(doc):
-        frappe.throw(
-            _("You can only open tickets you reported, are assigned to, or watch."),
-            frappe.PermissionError)
+    doc = _load_viewable(name)
     d = doc.as_dict()
     return {
         "ticket": {k: d.get(k) for k in (LIST_FIELDS + [
@@ -200,12 +206,22 @@ def get_ticket(name):
         "watchers": doc.watcher_list(),
         "watching": frappe.session.user in doc.watcher_list(),
         "blocker": _blocker_info(doc.blocked_by),
-        "blocking": frappe.get_all(
-            "Hub Ticket",
-            filters={"blocked_by": name,
-                     "status": ["in", ("Open", "In Progress", "In Review")]},
-            fields=["name", "title", "status"], limit_page_length=20),
+        "blocking": _blocking(name),
     }
+
+
+def _blocking(name):
+    """Open tickets waiting on this one — scoped, so a reporter doesn't read
+    other departments' titles through their own ticket."""
+    vis, params = visibility_sql()
+    params["blocked_by"] = name
+    return frappe.db.sql(
+        f"""SELECT name, title, status FROM `tabHub Ticket`
+            WHERE blocked_by = %(blocked_by)s
+              AND status IN ('Open', 'In Progress', 'In Review'){vis}
+            ORDER BY modified DESC LIMIT 20""",
+        params, as_dict=True,
+    )
 
 
 def _blocker_info(blocked_by):
@@ -299,7 +315,9 @@ def watch_ticket(name, watch=1):
     """Follow/unfollow a ticket — watchers get in-app updates on status
     changes and comments."""
     gate_read()
-    doc = frappe.get_doc("Hub Ticket", name)  # any member may watch
+    # Watching grants read access, so it must never be self-service on a
+    # ticket the caller can't already see.
+    doc = _load_viewable(name)
     user = frappe.session.user
     watchers = set(doc.watcher_list())
     if int(watch or 0):
@@ -319,7 +337,7 @@ def checklist_add(name, item):
     item = (item or "").strip()
     if not item:
         frappe.throw(_("Checklist item cannot be empty."))
-    doc = frappe.get_doc("Hub Ticket", name)  # any member may contribute
+    doc = _load_viewable(name)  # participants may contribute
     doc.append("checklist", {"item": item[:200], "done": 0})
     doc.save(ignore_permissions=True)
     frappe.db.commit()
@@ -329,7 +347,7 @@ def checklist_add(name, item):
 @frappe.whitelist()
 def checklist_toggle(name, row):
     gate_read()
-    doc = frappe.get_doc("Hub Ticket", name)
+    doc = _load_viewable(name)
     for c in doc.checklist:
         if c.name == row:
             c.done = 0 if c.done else 1
@@ -407,11 +425,10 @@ MAX_FILE_MB = 20
 def upload_attachment(name):
     """Attach an uploaded file (multipart field `file`) to a Hub Ticket.
 
-    Any hub member may attach — same policy as commenting. Files are stored
-    public so ticket links render inline previews across the portals.
+    Participants only — same policy as commenting.
     """
     gate_read()
-    doc = frappe.get_doc("Hub Ticket", name)  # 404s on a bad ticket name
+    doc = _load_viewable(name)
 
     f = frappe.request.files.get("file")
     if not f or not f.filename:
@@ -480,7 +497,7 @@ def add_comment(name, message):
     message = (message or "").strip()
     if not message:
         frappe.throw(_("Comment cannot be empty."))
-    doc = frappe.get_doc("Hub Ticket", name)  # any hub member may comment
+    doc = _load_viewable(name)  # participants only — comments are emailed out
     doc.append("comments", {
         "author": frappe.session.user,
         "comment_on": now_datetime(),
@@ -500,9 +517,13 @@ def _resolve_mentions(message):
     tokens = set(re.findall(r"@([A-Za-z0-9._-]+)", message))
     if not tokens:
         return set()
+    # Only fetch users whose local part could match a token in this comment,
+    # instead of loading every system user on every comment.
     by_local = {}
+    or_filters = [["name", "like", f"{tok}@%"] for tok in tokens]
     for u in frappe.get_all("User", filters={"enabled": 1, "user_type": "System User"},
-                            fields=["name"]):
+                            or_filters=or_filters, fields=["name"],
+                            limit_page_length=200):
         by_local.setdefault(u.name.split("@")[0].lower(), []).append(u.name)
     found = set()
     for token in tokens:

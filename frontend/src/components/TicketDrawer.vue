@@ -43,7 +43,7 @@
               >
                 <NavIcon name="pencil" :size="12" class="inline-block -mt-0.5" /> {{ t("Edit") }}
               </button>
-              <button class="btn-ghost !px-2" @click="close">✕</button>
+              <button class="btn-ghost !px-2" @click="close"><NavIcon name="x" :size="12" /></button>
             </div>
           </div>
 
@@ -100,14 +100,14 @@
                       :class="c.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-ink-300 text-transparent'"
                       :disabled="busy"
                       @click="onChecklistToggle(c)"
-                    >✓</button>
+                    ><NavIcon name="check" :size="11" /></button>
                     <span class="text-sm flex-1" :class="c.done ? 'text-ink-400 line-through' : 'text-ink-800'">
                       {{ c.item }}
                     </span>
                     <button
-                      class="text-ink-300 hover:text-rose-600 text-xs opacity-0 group-hover:opacity-100 transition"
+                      class="text-ink-300 hover:text-rose-600 text-xs md:opacity-0 md:group-hover:opacity-100 transition"
                       @click="onChecklistRemove(c)"
-                    >✕</button>
+                    ><NavIcon name="x" :size="12" /></button>
                   </div>
                 </div>
                 <div class="flex gap-2 mt-2">
@@ -145,16 +145,16 @@
                         :alt="a.file_name"
                         class="w-full h-24 object-cover"
                       />
-                      <div v-else class="h-24 grid place-items-center text-2xl">📄</div>
+                      <div v-else class="h-24 grid place-items-center text-ink-400"><NavIcon name="file" :size="24" /></div>
                       <div class="px-2 py-1.5 bg-white border-t border-ink-100">
                         <div class="text-[11px] font-medium text-ink-700 truncate">{{ a.file_name }}</div>
                         <div class="text-[10px] text-ink-400">{{ fmtSize(a.file_size) }}</div>
                       </div>
                     </a>
                     <button
-                      class="absolute top-1 right-1 w-6 h-6 rounded-full bg-ink-900/60 text-white text-xs opacity-0 group-hover:opacity-100 transition"
+                      class="absolute top-1 right-1 rtl:right-auto rtl:left-1 w-6 h-6 grid place-items-center rounded-full bg-ink-900/60 text-white md:opacity-0 md:group-hover:opacity-100 transition"
                       @click.stop="onDeleteAttachment(a)"
-                    >✕</button>
+                    ><NavIcon name="x" :size="12" /></button>
                   </div>
                 </div>
                 <p v-else class="text-xs text-ink-400">{{ t("No attachments.") }}</p>
@@ -182,7 +182,7 @@
                 <div class="relative mt-3">
                   <div
                     v-if="mentionMatches.length"
-                    class="absolute bottom-full mb-1 left-0 w-64 bg-white border border-ink-200 rounded-xl shadow-lg z-20 overflow-hidden"
+                    class="absolute bottom-full mb-1 left-0 rtl:left-auto rtl:right-0 w-64 bg-white border border-ink-200 rounded-xl shadow-lg z-20 overflow-hidden"
                   >
                     <button
                       v-for="u in mentionMatches"
@@ -213,7 +213,7 @@
               <!-- activity -->
               <div>
                 <label class="label">{{ t("Activity") }}</label>
-                <ul class="space-y-2 border-l-2 border-ink-100 pl-3">
+                <ul class="space-y-2 border-l-2 rtl:border-l-0 rtl:border-r-2 border-ink-100 pl-3 rtl:pl-0 rtl:pr-3">
                   <li v-for="(a, i) in data.activity" :key="i" class="text-xs text-ink-500">
                     <span class="font-medium text-ink-700">{{ a.action }}</span>
                     <span v-if="a.detail"> — {{ a.detail }}</span>
@@ -225,7 +225,7 @@
             </div>
 
             <!-- sidebar -->
-            <div class="px-5 py-5 md:border-l border-t md:border-t-0 border-ink-100 bg-ink-50/60 rounded-b-2xl md:rounded-bl-none md:rounded-r-2xl space-y-4">
+            <div class="px-5 py-5 md:border-l rtl:md:border-l-0 rtl:md:border-r border-t md:border-t-0 border-ink-100 bg-ink-50/60 rounded-b-2xl md:rounded-bl-none md:rounded-r-2xl rtl:md:rounded-r-none rtl:md:rounded-l-2xl space-y-4">
               <div v-if="ticketStages.length">
                 <label class="label">{{ t("Stage") }}</label>
                 <select :value="data.ticket.stage" class="input" :disabled="busy" @change="onStage($event.target.value)">
@@ -277,7 +277,7 @@
                     <span class="font-semibold"> {{ data.blocker.name }}</span>
                     <span class="block truncate text-[11px] opacity-80">{{ data.blocker.title }}</span>
                   </button>
-                  <button class="text-ink-300 hover:text-rose-600 text-xs" :disabled="busy" @click="onBlockedBy('')">✕</button>
+                  <button class="text-ink-300 hover:text-rose-600 text-xs" :disabled="busy" @click="onBlockedBy('')"><NavIcon name="x" :size="12" /></button>
                 </div>
                 <div v-else class="relative">
                   <input
@@ -344,7 +344,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, h } from "vue";
+import { ref, reactive, computed, watch, h, onMounted, onUnmounted } from "vue";
+import NavIcon from "./NavIcon.vue";
 import Pill from "./Pill.vue";
 import UserPicker from "./UserPicker.vue";
 import AiPolish from "./AiPolish.vue";
@@ -425,13 +426,23 @@ const portalMeta = computed(
   () => PORTAL_META[data.value?.ticket?.source_portal] || PORTAL_META.Other
 );
 
+// Every load carries a token; a slower response for a ticket the user has
+// already navigated away from is dropped. Without it, clicking A then B
+// could leave B's chrome bound to A's data — and every action then wrote to
+// the wrong ticket.
+let loadToken = 0;
+
 watch(
   () => ui.state.drawerTicket,
   async (name) => {
+    const token = ++loadToken;
     data.value = null;
     editing.value = false;
+    blockerSearch.value = "";
+    blockerResults.value = [];
     if (!name) return;
-    await load(name);
+    await load(name, token);
+    if (token !== loadToken) return;
     if (!users.value.length) {
       try {
         users.value = await assignableUsers("");
@@ -440,10 +451,13 @@ watch(
   }
 );
 
-async function load(name) {
+async function load(name, token = ++loadToken) {
   try {
-    data.value = await getTicket(name);
+    const res = await getTicket(name);
+    if (token !== loadToken) return;  // superseded by a newer open
+    data.value = res;
   } catch (e) {
+    if (token !== loadToken) return;
     toast.error(e.message || "Could not load ticket");
     close();
   }
@@ -610,6 +624,13 @@ function avatarColor(u) {
 function initials(u) {
   return String(u || "?").split("@")[0].slice(0, 2).toUpperCase();
 }
+
+// Esc closes the overlay — keyboard users had no way out.
+function onEscKey(e) {
+  if (e.key === "Escape" && ui.state.drawerTicket) close();
+}
+onMounted(() => document.addEventListener("keydown", onEscKey));
+onUnmounted(() => document.removeEventListener("keydown", onEscKey));
 </script>
 
 <style scoped>

@@ -39,7 +39,7 @@
         <div class="card w-full max-w-lg p-5 sm:p-6 mt-0 sm:mt-6 rounded-none sm:rounded-2xl min-h-screen sm:min-h-0">
           <div class="flex items-center justify-between mb-1">
             <h2 class="text-lg font-semibold text-ink-900">{{ active.icon }} {{ active.form_name }}</h2>
-            <button class="btn-ghost !px-2" @click="active = null">✕</button>
+            <button class="btn-ghost !px-2" @click="active = null"><NavIcon name="x" :size="12" /></button>
           </div>
           <p class="text-xs text-ink-400 mb-4">
             {{ active.workspace_icon }} {{ active.workspace }}
@@ -100,7 +100,7 @@
 // Work intake: form cards → dynamic questions → a ticket on the owning
 // team's board. The request lives in the requester's "Reported by me" view
 // and the team's workspace at the same time.
-import { ref, reactive, computed, nextTick, onMounted } from "vue";
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from "vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useI18n } from "@/composables/useI18n";
 import { useToast } from "@/composables/useToast";
@@ -168,6 +168,13 @@ async function submit() {
 }
 
 onMounted(load);
+
+// Esc closes the overlay — keyboard users had no way out.
+function onEscKey(e) {
+  if (e.key === "Escape" && active.value) active.value = null;
+}
+onMounted(() => document.addEventListener("keydown", onEscKey));
+onUnmounted(() => document.removeEventListener("keydown", onEscKey));
 </script>
 
 <style scoped>

@@ -102,7 +102,7 @@
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-ink-50 text-ink-500 text-left text-xs uppercase tracking-wide">
+            <tr class="bg-ink-50 text-ink-500 text-left rtl:text-right text-xs uppercase tracking-wide">
               <th class="px-5 py-2.5 font-semibold">{{ t("Portal") }}</th>
               <th class="px-3 py-2.5 font-semibold">{{ t("Open") }}</th>
               <th class="px-3 py-2.5 font-semibold">{{ t("Breached") }}</th>
@@ -204,6 +204,9 @@ const error = ref("");
 const summary = ref({ totals: {}, by_portal: [], by_status: [], by_priority: [] });
 const trends = ref({ series: [], health: [] });
 let refreshTimer = null;
+// The interval is armed after an await, so a fast unmount would otherwise
+// create it on a dead component and leak a forever-polling timer.
+let alive = true;
 
 const kpi = computed(() => ({
   open: summary.value.totals.open || 0,
@@ -250,7 +253,11 @@ async function armAutoRefresh() {
   try {
     const s = await getSettings();
     const secs = Number(s.auto_refresh_seconds) || 0;
-    if (secs > 0) refreshTimer = setInterval(() => getSummary().then((d) => (summary.value = d)).catch(() => {}), secs * 1000);
+    if (secs > 0 && alive) {
+      refreshTimer = setInterval(
+        () => getSummary().then((d) => (summary.value = d)).catch(() => {}),
+        secs * 1000);
+    }
   } catch {}
 }
 
@@ -259,7 +266,10 @@ onMounted(() => {
   armAutoRefresh();
   ensureAi();
 });
-onUnmounted(() => refreshTimer && clearInterval(refreshTimer));
+onUnmounted(() => {
+  alive = false;
+  if (refreshTimer) clearInterval(refreshTimer);
+});
 watch(() => ui.state.rev, load);
 
 // --- tiny inline presentational components ---
@@ -272,7 +282,7 @@ const StatTile = (props, { emit }) =>
     },
     [
       h("div", {
-        class: "absolute -right-4 -top-4 w-20 h-20 rounded-full opacity-60",
+        class: "absolute -right-4 rtl:-right-auto rtl:-left-4 -top-4 w-20 h-20 rounded-full opacity-60",
         style: { background: props.tint },
       }),
       h("div", { class: "relative" }, [

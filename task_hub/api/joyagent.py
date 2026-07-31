@@ -7,16 +7,30 @@ living in agents' heads.
 import frappe
 from frappe import _
 
-from task_hub.api.utils import gate_read
+from task_hub.api.utils import gate_read, is_manager
 
 OPEN_STATES = ("Open", "In Progress", "In Review")
+
+# Only the WhatsApp desk (and hub managers) may pull customer data out of a
+# conversation — otherwise any signed-in user could enumerate conversation
+# IDs and read customer PII back through the ticket they created.
+DESK_ROLES = {"JoyAgent Agent", "JoyAgent Content", "Supplier Portal Admin",
+              "Agent Manager", "Agent"}
+
+
+def _gate_desk():
+    if is_manager() or (set(frappe.get_roles()) & DESK_ROLES):
+        return
+    frappe.throw(_("Only the WhatsApp desk team can escalate conversations."),
+                 frappe.PermissionError)
 
 
 @frappe.whitelist()
 def escalate_conversation(conversation, note=None):
     """Create (or return the existing open) Hub ticket for a JoyAgent
-    conversation. Safe to call from any portal holding a desk session."""
+    conversation. Desk agents and hub managers only."""
     gate_read()
+    _gate_desk()
     if not frappe.db.exists("DocType", "JoyAgent Conversation"):
         frappe.throw(_("JoyAgent is not installed on this site."))
     row = frappe.db.get_value(
@@ -36,6 +50,16 @@ def escalate_conversation(conversation, note=None):
         "name",
     )
     if existing:
+        # A second agent hitting escalate must be able to open what they're
+        # pointed at, so add them as a watcher.
+        try:
+            doc = frappe.get_doc("Hub Ticket", existing)
+            watchers = set(doc.watcher_list()) | {frappe.session.user}
+            doc.watchers = ", ".join(sorted(watchers))
+            doc.save(ignore_permissions=True)
+            frappe.db.commit()
+        except Exception:
+            pass
         return {"name": existing, "existing": True}
 
     who = row.customer_name or row.customer_phone or row.name

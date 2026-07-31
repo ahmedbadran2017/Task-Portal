@@ -4,7 +4,7 @@
     <div class="flex flex-wrap items-center gap-2">
       <select v-model="filters.source_portal" class="input !w-auto" @change="load">
         <option value="">{{ t("All portals") }}</option>
-        <option v-for="p in PORTALS" :key="p" :value="p">{{ p }}</option>
+        <option v-for="p in PORTALS" :key="p" :value="p">{{ t(p) }}</option>
       </select>
       <select v-model="filters.priority" class="input !w-auto" @change="load">
         <option value="">{{ t("Any priority") }}</option>
@@ -37,7 +37,7 @@
           @click="setView('erp')"
         ><NavIcon name="list" :size="13" /> {{ t("ERP Tasks") }}</button>
       </div>
-      <button v-if="view === 'board'" class="btn-outline" @click="load">
+      <button v-if="view === 'board'" class="btn-outline" :disabled="loading" :aria-label="t('Refresh')" @click="load">
         <NavIcon name="refresh" :size="13" /> {{ t("Refresh") }}
       </button>
     </div>
@@ -159,6 +159,7 @@ const total = ref(0);
 const dragging = ref(null);
 const dropTarget = ref(null);
 let refreshTimer = null;
+let alive = true;  // see Dashboard: guards the post-await setInterval
 
 const PRIORITY_RANK = { Urgent: 0, High: 1, Medium: 2, Low: 3 };
 
@@ -282,10 +283,13 @@ onMounted(async () => {
   try {
     const s = await getSettings();
     const secs = Number(s.auto_refresh_seconds) || 0;
-    if (secs > 0) refreshTimer = setInterval(load, secs * 1000);
+    if (secs > 0 && alive) refreshTimer = setInterval(load, secs * 1000);
   } catch {}
 });
-onUnmounted(() => refreshTimer && clearInterval(refreshTimer));
+onUnmounted(() => {
+  alive = false;
+  if (refreshTimer) clearInterval(refreshTimer);
+});
 watch(() => ui.state.rev, load);
 watch(currentWsName, load);
 </script>

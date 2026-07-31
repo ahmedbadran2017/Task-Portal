@@ -55,14 +55,19 @@ def can_view_all(user=None):
 
 def visibility_sql(user=None):
     """WHERE fragment + params scoping rows to the user's own tickets —
-    reporter, assignee, or watcher. Empty for managers (they see all)."""
+    reporter, assignee, or watcher. Empty for managers (they see all).
+
+    Watcher matching is exact set membership, not a substring LIKE: the
+    latter leaked every ticket watched by `khali@` to `ali@`.
+    """
     user = user or frappe.session.user
     if can_view_all(user):
         return "", {}
     return (
         " AND (reported_by = %(vis_user)s OR assigned_to = %(vis_user)s"
-        " OR COALESCE(watchers, '') LIKE %(vis_watch)s)",
-        {"vis_user": user, "vis_watch": f"%{user}%"},
+        " OR FIND_IN_SET(%(vis_user)s,"
+        " REPLACE(COALESCE(watchers, ''), ', ', ',')))",
+        {"vis_user": user},
     )
 
 
@@ -77,6 +82,30 @@ def can_view_ticket(doc):
         return user in doc.watcher_list()
     except Exception:
         return False
+
+
+def gate_view(doc):
+    """Raise unless the caller may see this ticket. Every endpoint that
+    reads or writes ticket content must pass through here — read access is
+    what watch/comment/attach implicitly grant, so leaving one of them open
+    breaks the whole visibility model."""
+    if not can_view_ticket(doc):
+        frappe.throw(
+            _("You can only work on tickets you reported, are assigned to, or watch."),
+            frappe.PermissionError)
+    return doc
+
+
+SAFE_URL_SCHEMES = ("http://", "https://", "/")
+
+
+def safe_url(url):
+    """Keep only navigable URLs — a stored `javascript:` value rendered as an
+    href would run in the reader's session."""
+    url = (url or "").strip()
+    if not url:
+        return None
+    return url if url.startswith(SAFE_URL_SCHEMES) else None
 
 
 def normalize_portal(value):

@@ -103,38 +103,43 @@ def get_trends(weeks=8):
         weeks_seen[yw]["resolved"] = n
     series = [weeks_seen[k] for k in sorted(weeks_seen)]
 
-    # Per-portal health, last 30 days for the resolution metrics.
+    # Per-portal health, last 30 days for the resolution metrics. Two grouped
+    # queries instead of three per portal — the old loop cost 24 full scans.
     month_ago = add_days(nowdate(), -30)
+    open_rows = frappe.db.sql(
+        f"""SELECT source_portal p, COUNT(*) open_now,
+                   IFNULL(SUM(sla_breached), 0) breached
+            FROM `tabHub Ticket` WHERE status IN {OPEN_SQL}{vis}
+            GROUP BY source_portal""",
+        vparams, as_dict=True,
+    )
+    res_rows = frappe.db.sql(
+        f"""SELECT source_portal p, COUNT(*) n,
+                   AVG(TIMESTAMPDIFF(HOUR, creation, resolved_on)) avg_h
+            FROM `tabHub Ticket`
+            WHERE resolved_on IS NOT NULL AND resolved_on >= %(month_ago)s{vis}
+            GROUP BY source_portal""",
+        dict(vparams, month_ago=month_ago), as_dict=True,
+    )
+    open_map = {r.p: r for r in open_rows}
+    res_map = {r.p: r for r in res_rows}
+
     health = []
     for p in ("Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent",
               "Website", "Mobile App", "Other"):
-        pp = dict(vparams, portal=p, month_ago=month_ago)
-        open_now = frappe.db.sql(
-            f"""SELECT COUNT(*) FROM `tabHub Ticket`
-                WHERE source_portal = %(portal)s AND status IN {OPEN_SQL}{vis}""",
-            pp,
-        )[0][0]
-        breached = frappe.db.sql(
-            f"""SELECT COUNT(*) FROM `tabHub Ticket`
-                WHERE source_portal = %(portal)s AND status IN {OPEN_SQL}
-                  AND sla_breached = 1{vis}""",
-            pp,
-        )[0][0]
-        row = frappe.db.sql(
-            f"""SELECT COUNT(*) n, AVG(TIMESTAMPDIFF(HOUR, creation, resolved_on)) avg_h
-                FROM `tabHub Ticket`
-                WHERE source_portal = %(portal)s AND resolved_on IS NOT NULL
-                  AND resolved_on >= %(month_ago)s{vis}""",
-            pp, as_dict=True,
-        )[0]
-        if not any((open_now, breached, row.n)):
+        o = open_map.get(p)
+        r = res_map.get(p)
+        open_now = int(o.open_now) if o else 0
+        breached = int(o.breached or 0) if o else 0
+        resolved_30d = int(r.n) if r else 0
+        if not any((open_now, breached, resolved_30d)):
             continue
         health.append({
             "portal": p,
             "open": open_now,
             "breached": breached,
-            "resolved_30d": row.n or 0,
-            "avg_resolution_hours": round(row.avg_h, 1) if row.avg_h else None,
+            "resolved_30d": resolved_30d,
+            "avg_resolution_hours": round(r.avg_h, 1) if (r and r.avg_h) else None,
         })
 
     return {"series": series, "health": health}
