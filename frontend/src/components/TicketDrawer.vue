@@ -335,6 +335,36 @@
                 <Meta v-if="data.ticket.resolved_on" :label="t('Resolved')" :value="fmtDate(data.ticket.resolved_on)" />
                 <Meta v-if="data.ticket.due_date" :label="t('Due')" :value="fmtDate(data.ticket.due_date)" />
               </div>
+
+              <!-- danger zone: only the reporter or a manager, behind a
+                   two-step confirm so it can't be hit by accident -->
+              <div v-if="canDelete" class="pt-3 border-t border-ink-200/60">
+                <button
+                  v-if="!confirmingDelete"
+                  class="w-full text-xs font-semibold text-ink-400 hover:text-rose-600 py-1.5 transition inline-flex items-center justify-center gap-1.5"
+                  :disabled="busy"
+                  @click="confirmingDelete = true"
+                >
+                  <NavIcon name="trash" :size="12" /> {{ t("Delete ticket") }}
+                </button>
+                <div v-else class="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                  <p class="text-[11px] text-rose-700 leading-snug mb-2">
+                    {{ t("Delete this ticket permanently? Comments and attachments go with it.") }}
+                  </p>
+                  <div class="flex gap-2">
+                    <button class="btn-outline !py-1 text-xs flex-1" :disabled="busy" @click="confirmingDelete = false">
+                      {{ t("Cancel") }}
+                    </button>
+                    <button
+                      class="!py-1 text-xs flex-1 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition disabled:opacity-50"
+                      :disabled="busy"
+                      @click="onDelete"
+                    >
+                      {{ busy ? t("Deleting…") : t("Delete") }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -358,7 +388,7 @@ import {
   assignTicket, addComment, assignableUsers, updateTicket, watchTicket,
   checklistAdd, checklistToggle, checklistRemove,
   uploadAttachment, deleteAttachment, isImage, fmtSize,
-  setBlockedBy, listTickets,
+  setBlockedBy, listTickets, deleteTicket,
 } from "@/composables/useTickets";
 import { fmtDate, relTime, currentUserId, hasRole } from "@/composables/useApi";
 
@@ -395,6 +425,37 @@ const canShowEdit = computed(() => {
     hasRole("Task Hub Admin", "Task Hub Manager")
   );
 });
+
+// Deleting is narrower than editing: the person who raised it (their own
+// mistake to undo) or a manager. The assignee can't delete work assigned
+// to them.
+const canDelete = computed(() => {
+  const tk = data.value?.ticket;
+  if (!tk) return false;
+  return (
+    tk.reported_by === currentUserId() ||
+    hasRole("Task Hub Admin", "Task Hub Manager")
+  );
+});
+
+const confirmingDelete = ref(false);
+
+async function onDelete() {
+  if (busy.value) return;
+  busy.value = true;
+  try {
+    const name = data.value.ticket.name;
+    await deleteTicket(name);
+    toast.success(t("Ticket {0} deleted", name));
+    confirmingDelete.value = false;
+    close();
+    ui.bump();
+  } catch (e) {
+    toast.error(e.message || "Could not delete the ticket");
+  } finally {
+    busy.value = false;
+  }
+}
 
 // Mention suggestions only when "@" starts a word (not inside an email).
 const mentionMatches = computed(() => {

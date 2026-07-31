@@ -588,3 +588,47 @@ def find_similar(title):
             ORDER BY modified DESC LIMIT 3""",
         params, as_dict=True,
     )
+
+
+@frappe.whitelist()
+def delete_ticket(name):
+    """Permanently remove a ticket — the escape hatch for a mistaken entry.
+
+    Allowed for the reporter (their own mistake) and hub managers. Frappe
+    keeps the payload in `Deleted Document`, so an accidental delete is
+    still recoverable from the desk.
+    """
+    gate_read()
+    row = frappe.db.get_value("Hub Ticket", name,
+                              ["name", "title", "reported_by"], as_dict=True)
+    if not row:
+        frappe.throw(_("Ticket {0} was not found.").format(name))
+
+    from task_hub.api.utils import is_manager
+    if not (is_manager() or row.reported_by == frappe.session.user):
+        frappe.throw(
+            _("Only the person who reported this ticket, or a manager, can delete it."),
+            frappe.PermissionError)
+
+    # Free the dependents first: blocked_by is a Link, so Frappe would
+    # otherwise refuse the delete — and the waiting tickets would be left
+    # pointing at nothing.
+    for dep in frappe.get_all("Hub Ticket", filters={"blocked_by": name},
+                              fields=["name"]):
+        doc = frappe.get_doc("Hub Ticket", dep.name)
+        doc.blocked_by = None
+        doc.append("activity", {
+            "activity_on": now_datetime(),
+            "actor": frappe.session.user,
+            "action": "Dependency",
+            "detail": _("Blocker {0} was deleted").format(name),
+        })
+        doc.save(ignore_permissions=True)
+
+    # Notifications pointing at a ticket that no longer exists are dead links.
+    frappe.db.delete("Hub Notification", {"ticket": name})
+
+    frappe.delete_doc("Hub Ticket", name, ignore_permissions=True,
+                      delete_permanently=False)
+    frappe.db.commit()
+    return {"deleted": name, "title": row.title}

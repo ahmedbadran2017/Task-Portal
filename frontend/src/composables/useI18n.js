@@ -313,6 +313,12 @@ const AR = {
   "Daily rules that open tickets from live ERP data.":
     "قواعد يومية بتفتح تذاكر من بيانات نكست الحية. مقفولة افتراضيًا.",
   "Page not found": "الصفحة مش موجودة",
+  // delete
+  "Delete ticket": "حذف التذكرة",
+  "Delete this ticket permanently? Comments and attachments go with it.":
+    "تحذف التذكرة دي نهائيًا؟ التعليقات والمرفقات هتتمسح معاها.",
+  "Deleting…": "جاري الحذف…",
+  "Ticket {0} deleted": "التذكرة {0} اتمسحت",
   "Back to dashboard": "رجوع للرئيسية",
   // AI phase
   "AI triage": "فرز تلقائي",
@@ -630,6 +636,12 @@ const FR = {
   "Daily rules that open tickets from live ERP data.":
     "Règles quotidiennes qui créent des tickets à partir des données ERP. Désactivées par défaut.",
   "Page not found": "Page introuvable",
+  // delete
+  "Delete ticket": "Supprimer le ticket",
+  "Delete this ticket permanently? Comments and attachments go with it.":
+    "Supprimer définitivement ce ticket ? Les commentaires et pièces jointes seront supprimés.",
+  "Deleting…": "Suppression…",
+  "Ticket {0} deleted": "Ticket {0} supprimé",
   "Back to dashboard": "Retour au tableau de bord",
   // AI phase
   "AI triage": "Triage IA",

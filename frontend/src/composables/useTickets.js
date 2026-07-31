@@ -104,6 +104,10 @@ export function deleteAttachment(name, fileId) {
   return callMethod(`${M}.tickets.delete_attachment`, { name, file_id: fileId });
 }
 
+export function deleteTicket(name) {
+  return callMethod(`${M}.tickets.delete_ticket`, { name });
+}
+
 export function updateTicket(name, fields) {
   return callMethod(`${M}.tickets.update_ticket`, { name, ...fields });
 }
