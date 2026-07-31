@@ -20,7 +20,23 @@
               class="input"
               :placeholder="t('Short summary of the task or problem')"
               @keydown.meta.enter="submit"
+              @input="onTitleInput"
             />
+            <!-- duplicate guard: open tickets that look like this one -->
+            <div v-if="similar.length" class="mt-2 rounded-xl border border-amber-200 bg-amber-50/70 p-2.5">
+              <div class="text-[11px] font-bold text-amber-700 mb-1.5">
+                {{ t("Similar open tickets — maybe it's already reported:") }}
+              </div>
+              <button
+                v-for="s in similar"
+                :key="s.name"
+                type="button"
+                class="block w-full text-left rtl:text-right text-xs text-ink-700 hover:text-brand-700 py-0.5 truncate"
+                @click="ui.openTicket(s.name); close()"
+              >
+                <span class="font-mono text-ink-400">{{ s.name }}</span> — {{ s.title }}
+              </button>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -84,7 +100,24 @@
               class="input resize-none"
               :placeholder="t('Add context, steps, links…')"
             />
-            <AiPolish :text="form.description" @apply="form.description = $event" />
+            <div class="flex items-start gap-2 flex-wrap">
+              <AiPolish :text="form.description" @apply="form.description = $event" />
+              <button
+                v-if="aiOn"
+                type="button"
+                class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition
+                       border-ink-200 bg-white text-ink-600 hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="triaging || !form.title.trim()"
+                @click="runTriage"
+              >
+                <NavIcon name="gauge" :size="13" />
+                {{ triaging ? t("Triaging…") : t("AI triage") }}
+              </button>
+            </div>
+            <p v-if="triageReason" class="text-[11px] text-brand-700 bg-brand-50 rounded-lg px-2.5 py-1.5 mt-2">
+              <NavIcon name="sparkles" :size="11" class="inline-block -mt-0.5" /> {{ triageReason }}
+            </p>
           </div>
 
           <div>
@@ -137,9 +170,10 @@ import { useWorkspaces } from "@/composables/useWorkspaces";
 import { useI18n } from "@/composables/useI18n";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
+import { useAi } from "@/composables/useAi";
 import {
   TYPES, PRIORITIES, PORTALS, createTicket, assignableUsers, uploadAttachment,
-  listTemplates, createFromTemplate,
+  listTemplates, createFromTemplate, aiTriage, findSimilar,
 } from "@/composables/useTickets";
 
 const ui = useUi();
@@ -153,6 +187,49 @@ const fileEl = ref(null);
 const files = ref([]);
 const templates = ref([]);
 const templateName = ref("");
+
+// --- AI triage + duplicate guard ---
+const { enabled: aiOn } = useAi();
+const triaging = ref(false);
+const triageReason = ref("");
+const similar = ref([]);
+let similarTimer = null;
+
+function onTitleInput() {
+  clearTimeout(similarTimer);
+  const q = form.title.trim();
+  if (q.length < 4) {
+    similar.value = [];
+    return;
+  }
+  similarTimer = setTimeout(async () => {
+    try {
+      similar.value = await findSimilar(q);
+    } catch {
+      similar.value = [];
+    }
+  }, 400);
+}
+
+async function runTriage() {
+  if (triaging.value || !form.title.trim()) return;
+  triaging.value = true;
+  triageReason.value = "";
+  try {
+    const res = await aiTriage(form.title.trim(), form.description || "");
+    if (res.priority) form.priority = res.priority;
+    if (res.ticket_type) form.ticket_type = res.ticket_type;
+    if (res.workspace) {
+      form.workspace = res.workspace;
+      onWorkspaceChange();
+    }
+    triageReason.value = res.reason || "";
+  } catch (e) {
+    toast.error(e.message || "AI triage failed");
+  } finally {
+    triaging.value = false;
+  }
+}
 
 async function loadTemplates() {
   try {
@@ -206,6 +283,8 @@ watch(
     if (open) {
       Object.assign(form, blank(), ui.state.createPreset || {});
       files.value = [];
+      similar.value = [];
+      triageReason.value = "";
       // Default to the active workspace (or the system default).
       if (!form.workspace) {
         form.workspace =

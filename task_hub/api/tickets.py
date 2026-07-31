@@ -546,3 +546,24 @@ def _notify_comment(doc, message):
     for user in set(doc.watcher_list()) - {author} - mentioned - participants:
         push(user, doc.name, "comment",
              _("{0} commented on {1}: {2}").format(author_name, doc.name, message[:120]))
+
+
+@frappe.whitelist()
+def find_similar(title):
+    """Open tickets that look like the one being written — shown in the
+    create modal before a duplicate is born. Lexical match on title words,
+    scoped by the caller's visibility."""
+    gate_read()
+    words = [w.strip() for w in (title or "").split() if len(w.strip()) >= 3][:4]
+    if not words:
+        return []
+    vis, params = visibility_sql()
+    conds = " OR ".join(f"title LIKE %(w{i})s" for i in range(len(words)))
+    params.update({f"w{i}": f"%{w}%" for i, w in enumerate(words)})
+    return frappe.db.sql(
+        f"""SELECT name, title, status, workspace FROM `tabHub Ticket`
+            WHERE status IN ('Open', 'In Progress', 'In Review')
+              AND ({conds}){vis}
+            ORDER BY modified DESC LIMIT 3""",
+        params, as_dict=True,
+    )

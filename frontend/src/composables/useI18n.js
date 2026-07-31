@@ -253,6 +253,12 @@ const AR = {
   "No goals yet — set a quarterly target per team.": "مفيش أهداف لسه — حط مستهدف ربع سنوي لكل فريق.",
   "Workload": "توزيع الشغل",
   "Open load per person": "الشغل المفتوح على كل شخص",
+  // AI phase
+  "AI triage": "فرز تلقائي",
+  "Triaging…": "جاري الفرز…",
+  "Similar open tickets — maybe it's already reported:": "تذاكر مفتوحة شبهها — يمكن اتبلغ عنها قبل كده:",
+  "Ask about your work… e.g. what is late? who is overloaded?": "اسأل عن شغلك… مثلًا: إيه المتأخر؟ مين محمّل زيادة؟",
+  "Ask": "اسأل",
 };
 
 const FR = {
@@ -503,6 +509,12 @@ const FR = {
   "No goals yet — set a quarterly target per team.": "Aucun objectif — fixez une cible trimestrielle par équipe.",
   "Workload": "Charge de travail",
   "Open load per person": "Charge ouverte par personne",
+  // AI phase
+  "AI triage": "Triage IA",
+  "Triaging…": "Triage…",
+  "Similar open tickets — maybe it's already reported:": "Tickets ouverts similaires — peut-être déjà signalé :",
+  "Ask about your work… e.g. what is late? who is overloaded?": "Interrogez votre travail… ex. : qu'est-ce qui est en retard ?",
+  "Ask": "Demander",
 };
 
 const DICTS = { ar: AR, fr: FR };

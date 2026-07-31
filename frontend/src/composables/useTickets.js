@@ -177,6 +177,18 @@ export function polishDescription(text) {
   return callMethod(`${M}.ai.polish_description`, { text });
 }
 
+export function aiTriage(title, description = "") {
+  return callMethod(`${M}.ai.triage`, { title, description });
+}
+
+export function askHub(question) {
+  return callMethod(`${M}.ai.ask`, { question });
+}
+
+export function findSimilar(title) {
+  return getMethod(`${M}.tickets.find_similar`, { title });
+}
+
 export function setBlockedBy(name, blocked_by) {
   return callMethod(`${M}.tickets.set_blocked_by`, { name, blocked_by: blocked_by || "" });
 }

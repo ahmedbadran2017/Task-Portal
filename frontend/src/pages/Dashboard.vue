@@ -4,6 +4,25 @@
       {{ error }}
     </div>
 
+    <!-- Ask the Hub — natural-language questions over your visible tickets -->
+    <div v-if="aiOn" class="card p-4">
+      <form class="flex items-center gap-2" @submit.prevent="doAsk">
+        <span class="w-8 h-8 grid place-items-center rounded-xl bg-brand-50 text-brand-600 shrink-0">
+          <NavIcon name="sparkles" :size="15" />
+        </span>
+        <input
+          v-model="askQ"
+          class="input !py-2"
+          :placeholder="t('Ask about your work… e.g. what is late? who is overloaded?')"
+          maxlength="500"
+        />
+        <button class="btn-primary !py-2" type="submit" :disabled="asking || !askQ.trim()">
+          {{ asking ? "…" : t("Ask") }}
+        </button>
+      </form>
+      <div v-if="askA" class="mt-3 text-sm text-ink-800 leading-relaxed bg-brand-50/50 border border-brand-100 rounded-xl px-3.5 py-3 whitespace-pre-wrap fade-up" v-html="askA" />
+    </div>
+
     <!-- KPI row — each tile jumps to the matching filtered view -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       <StatTile
@@ -139,15 +158,47 @@ import TrendChart from "@/components/TrendChart.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
+import { useAi } from "@/composables/useAi";
+import { useToast } from "@/composables/useToast";
 import { isManager } from "@/composables/useApi";
 import {
   getSummary, getSettings, getTrends, PRIORITIES, STATUSES, PRIORITY_META, STATUS_META, PORTAL_META,
+  askHub,
 } from "@/composables/useTickets";
 
 const ui = useUi();
 const { t } = useI18n();
+const toast = useToast();
 const manager = isManager();
 const router = useRouter();
+
+// --- Ask the Hub ---
+const { enabled: aiOn, ensure: ensureAi } = useAi();
+const askQ = ref("");
+const askA = ref("");
+const asking = ref(false);
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function doAsk() {
+  if (asking.value || !askQ.value.trim()) return;
+  asking.value = true;
+  askA.value = "";
+  try {
+    const res = await askHub(askQ.value.trim());
+    // Linkify ticket IDs so the answer opens the drawer directly.
+    askA.value = escapeHtml(res.answer || "").replace(
+      /TKT-\d{4}-\d{5}/g,
+      (m) => `<a href="/taskhub/tickets?open=${m}" class="text-brand-600 font-semibold hover:underline">${m}</a>`
+    );
+  } catch (e) {
+    toast.error(e.message || "Ask failed");
+  } finally {
+    asking.value = false;
+  }
+}
 const loading = ref(true);
 const error = ref("");
 const summary = ref({ totals: {}, by_portal: [], by_status: [], by_priority: [] });
@@ -206,6 +257,7 @@ async function armAutoRefresh() {
 onMounted(() => {
   load();
   armAutoRefresh();
+  ensureAi();
 });
 onUnmounted(() => refreshTimer && clearInterval(refreshTimer));
 watch(() => ui.state.rev, load);

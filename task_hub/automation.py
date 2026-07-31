@@ -375,10 +375,28 @@ def send_weekly_digest():
     if not rows:
         return
 
+    # Optional AI paragraph on top of the raw table — best-effort, the
+    # digest goes out either way.
+    summary_html = ""
+    try:
+        from task_hub.api.ai import is_enabled, call_anthropic
+        if is_enabled():
+            summary = call_anthropic(
+                "You summarize a weekly ops digest for managers at Justyol. "
+                "Given an HTML table of ticket stats per portal (columns: "
+                "portal, new, resolved, open now, SLA-breached), write 2-3 "
+                "short bullet points in Arabic: the headline, the biggest "
+                "risk, and one suggested focus. Plain text bullets only.",
+                rows, max_tokens=300)
+            summary_html = ("<p><b>ملخص الأسبوع:</b><br>"
+                            + summary.replace("\n", "<br>") + "</p>")
+    except Exception:
+        pass
+
     _sendmail(
         _manager_emails(s),
         "[Task Hub] Weekly digest",
-        """<p>Task Hub — last 7 days:</p>
+        summary_html + """<p>Task Hub — last 7 days:</p>
         <table border="1" cellpadding="6" cellspacing="0">
           <tr><th>Portal</th><th>New</th><th>Resolved</th>
               <th>Open now</th><th>Breached</th></tr>""" + rows + """
