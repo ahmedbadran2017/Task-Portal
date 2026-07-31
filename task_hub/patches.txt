@@ -1,4 +1,8 @@
-# Patches applied during bench migrate
+# Patches applied during bench migrate.
+# BOTH section markers are required: with only [post_model_sync] present,
+# Frappe reads that line as a patch name and migrate dies with
+# "App [post_model_sync] is not installed".
+[pre_model_sync]
 task_hub.patches.v0_2_department_link
 task_hub.patches.v0_3_workspaces
 task_hub.patches.v0_4_marketing_workspace
