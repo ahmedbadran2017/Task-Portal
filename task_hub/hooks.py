@@ -30,6 +30,7 @@ scheduler_events = {
     "hourly": [
         "task_hub.task_hub.doctype.hub_ticket.hub_ticket.refresh_sla_breaches",
         "task_hub.automation.notify_sla_risks",
+        "task_hub.task_hub.doctype.hub_automation_rule.hub_automation_rule.run_automation_rules",
     ],
     "daily": [
         "task_hub.automation.run_auto_rules",

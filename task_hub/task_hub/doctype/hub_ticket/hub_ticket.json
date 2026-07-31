@@ -38,6 +38,7 @@
   "linked_label",
   "linked_url",
   "watchers",
+  "blocked_by",
   "section_checklist",
   "checklist",
   "section_comments",
@@ -83,6 +84,7 @@
   {"fieldname": "linked_url", "fieldtype": "Small Text", "label": "Linked URL", "description": "Deep link back to the record in its portal."},
 
   {"fieldname": "watchers", "fieldtype": "Small Text", "label": "Watchers", "read_only": 1, "description": "Comma-separated user IDs following this ticket."},
+  {"fieldname": "blocked_by", "fieldtype": "Link", "options": "Hub Ticket", "label": "Blocked By"},
   {"fieldname": "section_checklist", "fieldtype": "Section Break", "label": "Checklist", "collapsible": 1},
   {"fieldname": "checklist", "fieldtype": "Table", "options": "Hub Ticket Checklist Item", "label": "Checklist"},
 

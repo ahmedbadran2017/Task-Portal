@@ -264,6 +264,54 @@
                 />
               </div>
 
+              <!-- dependency: the ticket this one is waiting on -->
+              <div>
+                <label class="label">{{ t("Blocked by") }}</label>
+                <div v-if="data.blocker" class="flex items-center gap-2">
+                  <button
+                    class="flex-1 min-w-0 text-left rtl:text-right text-xs rounded-lg border px-2.5 py-2 transition"
+                    :class="blockerOpen ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'"
+                    @click="ui.openTicket(data.blocker.name)"
+                  >
+                    <NavIcon :name="blockerOpen ? 'ban' : 'check'" :size="11" class="inline-block -mt-0.5" />
+                    <span class="font-semibold"> {{ data.blocker.name }}</span>
+                    <span class="block truncate text-[11px] opacity-80">{{ data.blocker.title }}</span>
+                  </button>
+                  <button class="text-ink-300 hover:text-rose-600 text-xs" :disabled="busy" @click="onBlockedBy('')">✕</button>
+                </div>
+                <div v-else class="relative">
+                  <input
+                    v-model="blockerSearch"
+                    class="input !py-1.5 text-xs"
+                    :placeholder="t('Search a ticket…')"
+                    @input="searchBlockers"
+                  />
+                  <div
+                    v-if="blockerResults.length"
+                    class="absolute z-10 mt-1 w-full bg-white border border-ink-200 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto"
+                  >
+                    <button
+                      v-for="r in blockerResults"
+                      :key="r.name"
+                      class="w-full text-left rtl:text-right px-3 py-2 text-xs hover:bg-ink-50"
+                      @click="onBlockedBy(r.name)"
+                    >
+                      <span class="font-mono text-ink-400">{{ r.name }}</span>
+                      <span class="block truncate text-ink-700">{{ r.title }}</span>
+                    </button>
+                  </div>
+                </div>
+                <div v-if="data.blocking?.length" class="mt-2 text-[11px] text-ink-400">
+                  {{ t("Blocking {0} ticket(s)", data.blocking.length) }}:
+                  <button
+                    v-for="b in data.blocking"
+                    :key="b.name"
+                    class="text-brand-600 hover:underline mr-1.5 rtl:mr-0 rtl:ml-1.5"
+                    @click="ui.openTicket(b.name)"
+                  >{{ b.name }}</button>
+                </div>
+              </div>
+
               <div v-if="data.ticket.linked_label" class="pt-1">
                 <label class="label">{{ t("Linked Record") }}</label>
                 <a
@@ -309,6 +357,7 @@ import {
   assignTicket, addComment, assignableUsers, updateTicket, watchTicket,
   checklistAdd, checklistToggle, checklistRemove,
   uploadAttachment, deleteAttachment, isImage, fmtSize,
+  setBlockedBy, listTickets,
 } from "@/composables/useTickets";
 import { fmtDate, relTime, currentUserId, hasRole } from "@/composables/useApi";
 
@@ -430,6 +479,43 @@ async function saveEdit() {
     "Saved"
   );
   editing.value = false;
+}
+
+// --- dependency (blocked by) ---
+const blockerSearch = ref("");
+const blockerResults = ref([]);
+let blockerTimer = null;
+const blockerOpen = computed(
+  () => data.value?.blocker &&
+    !["Resolved", "Closed", "Cancelled"].includes(data.value.blocker.status)
+);
+
+function searchBlockers() {
+  clearTimeout(blockerTimer);
+  const q = blockerSearch.value.trim();
+  if (!q) {
+    blockerResults.value = [];
+    return;
+  }
+  blockerTimer = setTimeout(async () => {
+    try {
+      const res = await listTickets({ search: q, limit: 6 });
+      blockerResults.value = (res.tickets || []).filter(
+        (r) => r.name !== data.value?.ticket?.name
+      );
+    } catch {
+      blockerResults.value = [];
+    }
+  }, 250);
+}
+
+async function onBlockedBy(name) {
+  blockerResults.value = [];
+  blockerSearch.value = "";
+  await run(
+    () => setBlockedBy(data.value.ticket.name, name),
+    name ? "Dependency linked" : "Dependency cleared"
+  );
 }
 
 async function onWatch() {

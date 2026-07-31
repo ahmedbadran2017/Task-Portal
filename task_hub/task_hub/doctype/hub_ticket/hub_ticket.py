@@ -81,6 +81,7 @@ class HubTicket(Document):
             if self.status in CLOSED_STATES and not self.resolved_on:
                 self.resolved_on = now_datetime()
                 self._notify_resolved()
+                self._notify_unblocked()
             if self.status not in CLOSED_STATES:
                 # Re-opened — clear the resolution stamp AND the notification
                 # bookkeeping, so a revived ticket can warn/escalate again.
@@ -216,6 +217,18 @@ class HubTicket(Document):
 
     def watcher_list(self):
         return [w.strip() for w in (self.watchers or "").split(",") if w.strip()]
+
+    def _notify_unblocked(self):
+        """This ticket just resolved — tell the people waiting behind it."""
+        from task_hub.notify import push
+        for row in frappe.get_all(
+                "Hub Ticket",
+                filters={"blocked_by": self.name,
+                         "status": ["not in", tuple(CLOSED_STATES)]},
+                fields=["name", "title", "assigned_to", "reported_by"]):
+            for user in {row.assigned_to, row.reported_by} - {None, "", frappe.session.user}:
+                push(user, row.name, "resolved",
+                     _("Unblocked: {0} — the ticket it was waiting on is resolved").format(row.title))
 
     def _notify_watchers(self, ntype, message):
         """In-app only — watchers opted in to follow, not to be emailed."""

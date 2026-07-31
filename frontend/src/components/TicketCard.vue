@@ -25,6 +25,11 @@
       {{ ticket.title }}
     </p>
 
+    <div v-if="ticket.blocked_by" class="mt-1.5">
+      <span class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded text-rose-700 bg-rose-50 font-semibold">
+        <NavIcon name="ban" :size="10" /> {{ ticket.blocked_by }}
+      </span>
+    </div>
     <div v-if="ticket.due_date" class="mt-1.5">
       <span class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded"
             :class="dueOver ? 'text-rose-700 bg-rose-50 font-semibold' : 'text-ink-500 bg-ink-50'">

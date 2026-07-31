@@ -24,7 +24,7 @@ LIST_FIELDS = [
     "source_portal", "department", "reported_by", "assigned_to",
     "due_date", "sla_deadline", "sla_breached", "resolved_on",
     "linked_label", "linked_url", "creation", "modified",
-    "workspace", "stage",
+    "workspace", "stage", "blocked_by",
 ]
 
 
@@ -199,7 +199,52 @@ def get_ticket(name):
         ],
         "watchers": doc.watcher_list(),
         "watching": frappe.session.user in doc.watcher_list(),
+        "blocker": _blocker_info(doc.blocked_by),
+        "blocking": frappe.get_all(
+            "Hub Ticket",
+            filters={"blocked_by": name,
+                     "status": ["in", ("Open", "In Progress", "In Review")]},
+            fields=["name", "title", "status"], limit_page_length=20),
     }
+
+
+def _blocker_info(blocked_by):
+    if not blocked_by:
+        return None
+    row = frappe.db.get_value("Hub Ticket", blocked_by,
+                              ["name", "title", "status"], as_dict=True)
+    return row
+
+
+@frappe.whitelist()
+def set_blocked_by(name, blocked_by=None):
+    """Link (or clear) the ticket this one is waiting on."""
+    gate_read()
+    if not can_edit_ticket(name):
+        frappe.throw(_("Only the reporter, assignee, or a manager can edit this ticket."),
+                     frappe.PermissionError)
+    doc = frappe.get_doc("Hub Ticket", name)
+    blocked_by = (blocked_by or "").strip() or None
+    if blocked_by:
+        if blocked_by == name:
+            frappe.throw(_("A ticket can't block itself."))
+        if not frappe.db.exists("Hub Ticket", blocked_by):
+            frappe.throw(_("Ticket {0} was not found.").format(blocked_by))
+        # No two-node cycles either — A waits on B while B waits on A.
+        if frappe.db.get_value("Hub Ticket", blocked_by, "blocked_by") == name:
+            frappe.throw(_("These tickets would block each other."))
+    doc.blocked_by = blocked_by
+    doc.append("activity", {
+        "activity_on": now_datetime(),
+        "actor": frappe.session.user,
+        "action": "Dependency",
+        "detail": (_("Blocked by {0}").format(blocked_by) if blocked_by
+                   else _("Dependency cleared")),
+    })
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name, "blocked_by": doc.blocked_by,
+            "blocker": _blocker_info(doc.blocked_by)}
 
 
 def _attachments(name):

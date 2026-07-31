@@ -177,6 +177,43 @@ export function polishDescription(text) {
   return callMethod(`${M}.ai.polish_description`, { text });
 }
 
+export function setBlockedBy(name, blocked_by) {
+  return callMethod(`${M}.tickets.set_blocked_by`, { name, blocked_by: blocked_by || "" });
+}
+
+export function listForms(all = 0) {
+  return getMethod(`${M}.forms.list_forms`, { all_forms: all ? 1 : 0 });
+}
+
+export function saveForm(form) {
+  return callMethod(`${M}.forms.save_form`, {
+    ...form,
+    questions: form.questions ? JSON.stringify(form.questions) : undefined,
+  });
+}
+
+export function deleteForm(name) {
+  return callMethod(`${M}.forms.delete_form`, { name });
+}
+
+export function submitForm(form, title, answers, due_date = "") {
+  return callMethod(`${M}.forms.submit_form`, {
+    form, title, answers: JSON.stringify(answers || []), due_date,
+  });
+}
+
+export function listAutomationRules() {
+  return getMethod(`${M}.automations.list_rules`);
+}
+
+export function saveAutomationRule(rule) {
+  return callMethod(`${M}.automations.save_rule`, rule);
+}
+
+export function deleteAutomationRule(name) {
+  return callMethod(`${M}.automations.delete_rule`, { name });
+}
+
 export function getWorkspaceScorecard(days = 30) {
   return getMethod(`${M}.scorecards.workspace_scorecard`, { days });
 }

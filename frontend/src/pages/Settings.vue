@@ -169,7 +169,7 @@
 
     <!-- language: personal, applies immediately, no save needed -->
     <div class="card p-6">
-      <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Language") }} / اللغة / Langue</h3>
+      <h3 class="text-sm font-bold text-ink-900 mb-1">Language / اللغة / Langue</h3>
       <p class="text-xs text-ink-400 mb-4">
         Personal preference — stored on this device. Defaults to your ERPNext user language.
       </p>
@@ -447,6 +447,201 @@
       <p v-else class="text-xs text-ink-400">No templates yet.</p>
     </div>
 
+    <!-- request forms: work intake between departments -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-bold text-ink-900">{{ t("Request forms") }}</h3>
+        <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="startNewForm">
+          + {{ t("Add form") }}
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mb-4">
+        {{ t("Anyone fills a form from the Requests page — the ticket lands on the owning team's board.") }}
+      </p>
+
+      <div v-if="formEdit" class="border border-brand-200 bg-brand-50/40 rounded-xl p-4 mb-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">{{ t("Form name") }} *</label>
+            <input v-model="formEdit.form_name" class="input" :disabled="!!formEdit.name" />
+          </div>
+          <div>
+            <label class="label">{{ t("Workspace") }} *</label>
+            <select v-model="formEdit.workspace" class="input">
+              <option v-for="w in wsList" :key="w.name" :value="w.name">{{ w.icon }} {{ w.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Icon</label>
+            <input v-model="formEdit.icon" class="input !w-20" maxlength="4" />
+          </div>
+          <div>
+            <label class="label">{{ t("Default priority") }}</label>
+            <select v-model="formEdit.priority" class="input">
+              <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">{{ t("Assign To") }}</label>
+            <UserPicker v-model="formEdit.default_assignee" :users="users" />
+          </div>
+          <div>
+            <label class="label">{{ t("Due in (days, 0 = none)") }}</label>
+            <input v-model.number="formEdit.due_in_days" type="number" min="0" max="365" class="input !w-24" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">{{ t("Help text") }}</label>
+            <input v-model="formEdit.help_text" class="input" />
+          </div>
+        </div>
+
+        <div>
+          <label class="label">{{ t("Questions") }}</label>
+          <div v-for="(q, i) in formEdit.questions" :key="i" class="flex items-center gap-2 mb-2">
+            <input v-model="q.question" class="input flex-1 !py-1.5 text-sm" :placeholder="t('Question')" />
+            <select v-model="q.fieldtype" class="input !w-auto !py-1.5 text-sm">
+              <option>Text</option><option>Long Text</option><option>Select</option>
+              <option>Date</option><option>Number</option><option>Checkbox</option>
+            </select>
+            <input
+              v-if="q.fieldtype === 'Select'"
+              v-model="q.optionsText"
+              class="input !w-36 !py-1.5 text-sm"
+              :placeholder="t('a, b, c')"
+            />
+            <label class="flex items-center gap-1 text-xs text-ink-500 shrink-0">
+              <input type="checkbox" v-model="q.required" class="rounded" /> *
+            </label>
+            <button class="text-ink-300 hover:text-rose-600" @click="formEdit.questions.splice(i, 1)">✕</button>
+          </div>
+          <button class="btn-outline !py-1 text-xs" @click="formEdit.questions.push({ question: '', fieldtype: 'Text', required: false, optionsText: '' })">
+            + {{ t("Add") }}
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 text-sm text-ink-700">
+            <Toggle v-model="formEdit.active" /> {{ t("Active") }}
+          </label>
+          <div class="flex gap-2">
+            <button class="btn-outline !py-1.5" @click="formEdit = null">{{ t("Cancel") }}</button>
+            <button class="btn-primary !py-1.5"
+                    :disabled="savingForm || !formEdit.form_name.trim() || !formEdit.workspace"
+                    @click="saveFormRow">{{ t("Save") }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="formList.length" class="divide-y divide-ink-100">
+        <div v-for="f in formList" :key="f.name" class="py-3 flex items-center gap-3">
+          <span class="text-lg">{{ f.icon || "📝" }}</span>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-ink-800 truncate">
+              {{ f.form_name }}
+              <span v-if="!f.active" class="text-[10px] font-bold text-ink-400 uppercase">— {{ t("inactive") }}</span>
+            </div>
+            <div class="text-[11px] text-ink-400 truncate">
+              {{ f.workspace }} · {{ f.questions.length }} {{ t("questions") }}
+            </div>
+          </div>
+          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditForm(f)"><NavIcon name="pencil" :size="12" /></button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeForm(f)">✕</button>
+        </div>
+      </div>
+      <p v-else class="text-xs text-ink-400">{{ t("No forms yet.") }}</p>
+    </div>
+
+    <!-- automation rules: when X then Y, no code -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-bold text-ink-900">{{ t("Automation rules") }}</h3>
+        <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="startNewAuto">
+          + {{ t("Add rule") }}
+        </button>
+      </div>
+      <p class="text-xs text-ink-400 mb-4">
+        {{ t("Checked hourly over open tickets; each rule fires once per ticket.") }}
+      </p>
+
+      <div v-if="autoEdit" class="border border-brand-200 bg-brand-50/40 rounded-xl p-4 mb-4 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">{{ t("Rule name") }} *</label>
+            <input v-model="autoEdit.rule_name" class="input" :disabled="!!autoEdit.name" />
+          </div>
+          <div>
+            <label class="label">{{ t("Workspace") }}</label>
+            <select v-model="autoEdit.workspace" class="input">
+              <option value="">{{ t("All workspaces") }}</option>
+              <option v-for="w in wsList" :key="w.name" :value="w.name">{{ w.icon }} {{ w.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">{{ t("When") }}</label>
+            <select v-model="autoEdit.trigger" class="input">
+              <option value="Stuck in stage">{{ t("Stuck in stage") }}</option>
+              <option value="Due date passed">{{ t("Due date passed") }}</option>
+            </select>
+          </div>
+          <div v-if="autoEdit.trigger === 'Stuck in stage'">
+            <label class="label">{{ t("After (days)") }}</label>
+            <input v-model.number="autoEdit.stuck_days" type="number" min="1" max="90" class="input !w-24" />
+          </div>
+          <div>
+            <label class="label">{{ t("Then") }}</label>
+            <select v-model="autoEdit.action" class="input">
+              <option value="Notify workspace managers">{{ t("Notify workspace managers") }}</option>
+              <option value="Notify user">{{ t("Notify user") }}</option>
+              <option value="Assign to user">{{ t("Assign to user") }}</option>
+              <option value="Set priority">{{ t("Set priority") }}</option>
+            </select>
+          </div>
+          <div v-if="['Notify user', 'Assign to user'].includes(autoEdit.action)">
+            <label class="label">{{ t("Person") }}</label>
+            <UserPicker v-model="autoEdit.action_user" :users="users" />
+          </div>
+          <div v-if="autoEdit.action === 'Set priority'">
+            <label class="label">{{ t("Priority") }}</label>
+            <select v-model="autoEdit.action_priority" class="input">
+              <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 text-sm text-ink-700">
+            <Toggle v-model="autoEdit.active" /> {{ t("Active") }}
+          </label>
+          <div class="flex gap-2">
+            <button class="btn-outline !py-1.5" @click="autoEdit = null">{{ t("Cancel") }}</button>
+            <button class="btn-primary !py-1.5"
+                    :disabled="savingAuto || !autoEdit.rule_name.trim()"
+                    @click="saveAutoRow">{{ t("Save") }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="autoRules.length" class="divide-y divide-ink-100">
+        <div v-for="r in autoRules" :key="r.name" class="py-3 flex items-center gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-ink-800 truncate">
+              {{ r.rule_name }}
+              <span v-if="!r.active" class="text-[10px] font-bold text-ink-400 uppercase">— {{ t("inactive") }}</span>
+            </div>
+            <div class="text-[11px] text-ink-400 truncate">
+              {{ r.workspace || t("All workspaces") }} ·
+              {{ t(r.trigger) }}<template v-if="r.trigger === 'Stuck in stage'"> {{ r.stuck_days }}d</template>
+              → {{ t(r.action) }}
+              <template v-if="r.action_user"> ({{ r.action_user.split("@")[0] }})</template>
+              <template v-if="r.action_priority"> ({{ t(r.action_priority) }})</template>
+            </div>
+          </div>
+          <button v-if="canEdit" class="btn-ghost !px-2 !py-1 text-xs" @click="startEditAuto(r)"><NavIcon name="pencil" :size="12" /></button>
+          <button v-if="canEdit" class="text-ink-300 hover:text-rose-600 text-sm" @click="removeAuto(r)">✕</button>
+        </div>
+      </div>
+      <p v-else class="text-xs text-ink-400">{{ t("No rules yet.") }}</p>
+    </div>
+
     <div v-if="canEdit" class="flex justify-end gap-2">
       <button class="btn-outline" :disabled="saving" @click="load">{{ t("Reset") }}</button>
       <button class="btn-primary" :disabled="saving" @click="save">
@@ -467,6 +662,8 @@ import {
   TYPES, PRIORITIES, PRIORITY_META, getSettings, updateSettings, whoami,
   assignableUsers, listRecurringRules, saveRecurringRule, deleteRecurringRule,
   listTemplates, saveTemplate, deleteTemplate,
+  listForms, saveForm, deleteForm,
+  listAutomationRules, saveAutomationRule, deleteAutomationRule,
 } from "@/composables/useTickets";
 
 const toast = useToast();
@@ -716,6 +913,126 @@ const slaFields = [
   { key: "sla_low_hours", label: "Low", color: PRIORITY_META.Low.color },
 ];
 
+// --- request forms manager ---
+const formList = ref([]);
+const formEdit = ref(null);
+const savingForm = ref(false);
+
+async function loadFormsList() {
+  try {
+    formList.value = await listForms(1);
+  } catch {
+    formList.value = [];
+  }
+}
+
+function startNewForm() {
+  formEdit.value = {
+    form_name: "", workspace: "", icon: "📝", help_text: "",
+    ticket_type: "Request", priority: "Medium", default_assignee: "",
+    due_in_days: 0, active: 1, questions: [
+      { question: "", fieldtype: "Long Text", required: true, optionsText: "" },
+    ],
+  };
+}
+
+function startEditForm(f) {
+  formEdit.value = {
+    name: f.name, form_name: f.form_name, workspace: f.workspace,
+    icon: f.icon || "📝", help_text: f.help_text || "",
+    ticket_type: f.ticket_type || "Request", priority: f.priority || "Medium",
+    default_assignee: f.default_assignee || "", due_in_days: f.due_in_days || 0,
+    active: f.active, questions: f.questions.map((q) => ({
+      question: q.question, fieldtype: q.fieldtype,
+      required: !!q.required, optionsText: (q.options || []).join(", "),
+    })),
+  };
+}
+
+async function saveFormRow() {
+  savingForm.value = true;
+  try {
+    const payload = { ...formEdit.value };
+    payload.questions = payload.questions
+      .filter((q) => q.question.trim())
+      .map((q) => ({
+        question: q.question.trim(), fieldtype: q.fieldtype,
+        required: q.required ? 1 : 0,
+        options: (q.optionsText || "").split(",").map((o) => o.trim()).filter(Boolean),
+      }));
+    await saveForm(payload);
+    formEdit.value = null;
+    toast.success("Form saved");
+    loadFormsList();
+  } catch (e) {
+    toast.error(e.message || "Could not save the form");
+  } finally {
+    savingForm.value = false;
+  }
+}
+
+async function removeForm(f) {
+  try {
+    await deleteForm(f.name);
+    loadFormsList();
+  } catch (e) {
+    toast.error(e.message);
+  }
+}
+
+// --- automation rules manager ---
+const autoRules = ref([]);
+const autoEdit = ref(null);
+const savingAuto = ref(false);
+
+async function loadAutoRules() {
+  try {
+    autoRules.value = await listAutomationRules();
+  } catch {
+    autoRules.value = [];
+  }
+}
+
+function startNewAuto() {
+  autoEdit.value = {
+    rule_name: "", active: 1, workspace: "", trigger: "Stuck in stage",
+    stuck_days: 3, action: "Notify workspace managers",
+    action_user: "", action_priority: "High",
+  };
+}
+
+function startEditAuto(r) {
+  autoEdit.value = {
+    name: r.name, rule_name: r.rule_name, active: r.active,
+    workspace: r.workspace || "", trigger: r.trigger,
+    stuck_days: r.stuck_days || 3, action: r.action,
+    action_user: r.action_user || "", action_priority: r.action_priority || "High",
+  };
+}
+
+async function saveAutoRow() {
+  savingAuto.value = true;
+  try {
+    await saveAutomationRule({ ...autoEdit.value });
+    autoEdit.value = null;
+    toast.success("Rule saved");
+    loadAutoRules();
+  } catch (e) {
+    toast.error(e.message || "Could not save the rule");
+  } finally {
+    savingAuto.value = false;
+  }
+}
+
+async function removeAuto(r) {
+  try {
+    await deleteAutomationRule(r.name);
+    loadAutoRules();
+  } catch (e) {
+    toast.error(e.message);
+  }
+}
+
 async function load() {
   error.value = "";
   try {
@@ -724,6 +1041,8 @@ async function load() {
     canEdit.value = !!me.is_manager;
     loadRules();
     loadTemplatesList();
+    loadFormsList();
+    loadAutoRules();
     if (!users.value.length) assignableUsers("").then((u) => (users.value = u)).catch(() => {});
     if (!departments.value.length) listDepartments().then((d) => (departments.value = d)).catch(() => {});
   } catch (e) {

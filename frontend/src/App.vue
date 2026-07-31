@@ -164,6 +164,7 @@ const nav = computed(() =>
   [
     { to: "/dashboard", label: t("Dashboard"), icon: "dashboard" },
     { to: "/my", label: t("My Work"), icon: "user" },
+    { to: "/requests", label: t("Requests"), icon: "send" },
     { to: "/board", label: t("Board"), icon: "board" },
     { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
     { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true },
