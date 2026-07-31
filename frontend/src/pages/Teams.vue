@@ -17,6 +17,11 @@
             :class="mode === 'workspaces' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
             @click="mode = 'workspaces'; selected = ''; load()"
           >{{ t("Workspaces") }}</button>
+          <button
+            class="px-3 py-1.5 text-xs font-semibold transition"
+            :class="mode === 'workload' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+            @click="mode = 'workload'; selected = ''; loadWorkload()"
+          >{{ t("Workload") }}</button>
         </div>
         <button
           v-for="d in [7, 30, 90]"
@@ -34,8 +39,60 @@
       {{ error }}
     </div>
 
+    <!-- workload: who is carrying what right now -->
+    <template v-if="mode === 'workload'">
+      <div class="card p-5">
+        <div class="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <h3 class="text-sm font-semibold text-ink-700">{{ t("Open load per person") }}</h3>
+          <select v-model="wlWorkspace" class="input !w-auto !py-1.5 text-xs" @change="loadWorkload">
+            <option value="">{{ t("All workspaces") }}</option>
+            <option v-for="w in wsList" :key="w.name" :value="w.name">{{ w.icon }} {{ w.name }}</option>
+          </select>
+        </div>
+        <div class="space-y-3">
+          <div v-for="pn in workload" :key="pn.user" class="flex items-center gap-3">
+            <span
+              class="w-7 h-7 rounded-full grid place-items-center text-[10px] font-bold text-white shrink-0"
+              :style="{ background: avatarColor(pn.user) }"
+            >{{ initials(pn.user) }}</span>
+            <span class="w-36 truncate text-sm text-ink-800 shrink-0">{{ pn.full_name }}</span>
+            <div class="flex-1 h-4 rounded-full bg-ink-100 overflow-hidden flex">
+              <div
+                v-for="p in ['Urgent', 'High', 'Medium', 'Low']"
+                :key="p"
+                class="h-full transition-all duration-500"
+                :style="{
+                  width: (pn.by_priority[p] / maxLoad) * 100 + '%',
+                  background: PRIORITY_META[p].color,
+                }"
+                :title="t(p) + ': ' + pn.by_priority[p]"
+              />
+            </div>
+            <span class="text-sm font-bold tabular-nums w-8 text-right rtl:text-left shrink-0">{{ pn.open }}</span>
+            <span v-if="pn.breached" class="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded shrink-0">
+              {{ pn.breached }} SLA
+            </span>
+            <span v-else-if="pn.due_7d" class="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shrink-0">
+              {{ pn.due_7d }} ≤7d
+            </span>
+          </div>
+          <p v-if="!workload.length && !wlLoading" class="text-sm text-ink-400 py-4">
+            {{ t("Nothing here") }}
+          </p>
+          <div v-for="i in (wlLoading && !workload.length ? 4 : 0)" :key="'sk' + i" class="skeleton h-8" />
+        </div>
+        <div class="flex items-center gap-3 mt-4 pt-3 border-t border-ink-100">
+          <span v-for="p in ['Urgent', 'High', 'Medium', 'Low']" :key="p"
+                class="inline-flex items-center gap-1.5 text-[11px] text-ink-500">
+            <span class="w-2.5 h-2.5 rounded-sm" :style="{ background: PRIORITY_META[p].color }" />
+            {{ t(p) }}
+          </span>
+        </div>
+      </div>
+    </template>
+
     <!-- department cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div v-if="mode !== 'workload'" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       <button
         v-for="d in rows"
         :key="d.key"
@@ -168,9 +225,12 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
+import { useWorkspaces } from "@/composables/useWorkspaces";
 import {
   getDepartmentScorecard, getEmployeeScorecard, getWorkspaceScorecard,
+  PRIORITY_META,
 } from "@/composables/useTickets";
+import { getMethod } from "@/composables/useApi";
 
 const router = useRouter();
 const { t } = useI18n();
@@ -183,6 +243,31 @@ const departments = ref([]);
 const wsRows = ref([]);
 const employees = ref([]);
 const selected = ref("");
+
+// --- workload mode ---
+const { workspaces: wsList } = useWorkspaces();
+const wlWorkspace = ref("");
+const workload = ref([]);
+const wlLoading = ref(false);
+
+const maxLoad = computed(() =>
+  Math.max(1, ...workload.value.map((p) => p.open))
+);
+
+async function loadWorkload() {
+  wlLoading.value = true;
+  error.value = "";
+  try {
+    const res = await getMethod("task_hub.api.scorecards.workload", {
+      workspace: wlWorkspace.value || "",
+    });
+    workload.value = res.people || [];
+  } catch (e) {
+    error.value = e.message || "Could not load the workload";
+  } finally {
+    wlLoading.value = false;
+  }
+}
 
 // One unified card shape for both modes.
 const rows = computed(() =>

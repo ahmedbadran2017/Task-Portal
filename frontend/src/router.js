@@ -7,6 +7,7 @@ import Settings from "./pages/Settings.vue";
 import Teams from "./pages/Teams.vue";
 import MyWork from "./pages/MyWork.vue";
 import Requests from "./pages/Requests.vue";
+import Command from "./pages/Command.vue";
 
 const routes = [
   { path: "/", redirect: "/dashboard" },
@@ -16,6 +17,7 @@ const routes = [
   { path: "/requests", name: "requests", component: Requests },
   { path: "/tickets", name: "tickets", component: TicketList },
   { path: "/teams", name: "teams", component: Teams },
+  { path: "/command", name: "command", component: Command },
   { path: "/settings", name: "settings", component: Settings },
 ];
 

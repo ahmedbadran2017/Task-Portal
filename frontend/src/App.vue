@@ -112,7 +112,7 @@
         style="padding-bottom: env(safe-area-inset-bottom)"
       >
         <router-link
-          v-for="item in nav"
+          v-for="item in nav.filter((i) => !i.desktopOnly)"
           :key="item.to"
           :to="item.to"
           class="flex-1 flex flex-col items-center gap-0.5 pt-2 pb-1.5 min-h-[56px] transition-colors"
@@ -167,7 +167,8 @@ const nav = computed(() =>
     { to: "/requests", label: t("Requests"), icon: "send" },
     { to: "/board", label: t("Board"), icon: "board" },
     { to: "/tickets", label: t("All Tickets"), short: t("Tickets"), icon: "list" },
-    { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true },
+    { to: "/teams", label: t("Teams"), icon: "users", managerOnly: true, desktopOnly: true },
+    { to: "/command", label: t("Command"), icon: "gauge", managerOnly: true, desktopOnly: true },
     { to: "/settings", label: t("Settings"), icon: "settings" },
   ].filter((i) => !i.managerOnly || isManager())
 );

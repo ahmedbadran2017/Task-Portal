@@ -212,3 +212,56 @@ def employee_scorecard(days=30, department=None, workspace=None):
         })
     rows.sort(key=lambda r: (-r["resolved"], -r["open"]))
     return {"days": days, "department": department, "employees": rows}
+
+
+@frappe.whitelist()
+def workload(workspace=None):
+    """Capacity view — who is carrying what right now. Members with zero
+    open tickets are listed too; spotting the idle half of the team is the
+    whole point."""
+    gate_manager()
+    from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
+        workspace_members)
+
+    users = set()
+    if workspace:
+        users = set(workspace_members(workspace))
+
+    conds = ["status IN ('Open', 'In Progress', 'In Review')",
+             "COALESCE(assigned_to, '') != ''"]
+    params = {}
+    if workspace:
+        conds.append("workspace = %(ws)s")
+        params["ws"] = workspace
+    rows = frappe.db.sql(
+        f"""SELECT assigned_to, priority, COUNT(*) n, SUM(sla_breached) breached,
+                   SUM(due_date IS NOT NULL
+                       AND due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)) due_7d
+            FROM `tabHub Ticket` WHERE {' AND '.join(conds)}
+            GROUP BY assigned_to, priority""",
+        params, as_dict=True,
+    )
+
+    by_user = {}
+    for r in rows:
+        u = by_user.setdefault(r.assigned_to, {
+            "user": r.assigned_to, "open": 0, "breached": 0, "due_7d": 0,
+            "by_priority": {"Urgent": 0, "High": 0, "Medium": 0, "Low": 0},
+        })
+        u["open"] += r.n
+        u["breached"] += int(r.breached or 0)
+        u["due_7d"] += int(r.due_7d or 0)
+        if r.priority in u["by_priority"]:
+            u["by_priority"][r.priority] += r.n
+    for u in users - set(by_user):
+        by_user[u] = {"user": u, "open": 0, "breached": 0, "due_7d": 0,
+                      "by_priority": {"Urgent": 0, "High": 0, "Medium": 0, "Low": 0}}
+
+    out = list(by_user.values())
+    names = {r.name: r.full_name for r in frappe.get_all(
+        "User", filters={"name": ["in", list(by_user)]},
+        fields=["name", "full_name"])} if by_user else {}
+    for u in out:
+        u["full_name"] = names.get(u["user"]) or u["user"]
+    out.sort(key=lambda r: -r["open"])
+    return {"workspace": workspace, "people": out}
