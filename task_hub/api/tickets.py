@@ -632,3 +632,53 @@ def delete_ticket(name):
                       delete_permanently=False)
     frappe.db.commit()
     return {"deleted": name, "title": row.title}
+
+
+@frappe.whitelist()
+def my_tasks(limit=25, scope="all"):
+    """Compact personal feed for the in-portal task panel.
+
+    Inherently scoped to the caller (assignee or reporter), so it needs no
+    visibility fragment. One round-trip: the rows plus the counts the
+    badge shows.
+    """
+    gate_read()
+    user = frappe.session.user
+    limit = max(1, min(50, int(limit)))
+
+    if scope == "assigned":
+        who = "assigned_to = %(me)s"
+    elif scope == "reported":
+        who = "reported_by = %(me)s"
+    else:
+        who = "(assigned_to = %(me)s OR reported_by = %(me)s)"
+
+    rows = frappe.db.sql(
+        f"""SELECT name, title, status, priority, ticket_type, due_date,
+                   sla_breached, workspace, stage, assigned_to, reported_by,
+                   source_portal, modified
+            FROM `tabHub Ticket`
+            WHERE {who} AND status IN ('Open', 'In Progress', 'In Review')
+            ORDER BY sla_breached DESC,
+                     CASE priority WHEN 'Urgent' THEN 0 WHEN 'High' THEN 1
+                                   WHEN 'Medium' THEN 2 ELSE 3 END,
+                     COALESCE(due_date, '2999-12-31') ASC
+            LIMIT %(limit)s""",
+        {"me": user, "limit": limit}, as_dict=True,
+    )
+    counts = frappe.db.sql(
+        """SELECT
+             SUM(assigned_to = %(me)s) assigned_open,
+             SUM(reported_by = %(me)s) reported_open,
+             SUM(assigned_to = %(me)s AND sla_breached = 1) breached
+           FROM `tabHub Ticket`
+           WHERE (assigned_to = %(me)s OR reported_by = %(me)s)
+             AND status IN ('Open', 'In Progress', 'In Review')""",
+        {"me": user}, as_dict=True,
+    )[0]
+    return {
+        "tasks": rows,
+        "assigned_open": int(counts.assigned_open or 0),
+        "reported_open": int(counts.reported_open or 0),
+        "breached": int(counts.breached or 0),
+    }
