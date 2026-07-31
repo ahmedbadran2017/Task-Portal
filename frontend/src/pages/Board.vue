@@ -30,6 +30,12 @@
           :class="view === 'calendar' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
           @click="setView('calendar')"
         ><NavIcon name="calendar" :size="13" /> {{ t("Calendar") }}</button>
+        <button
+          v-if="isPurchaseWs"
+          class="px-3 py-2 text-xs font-semibold transition"
+          :class="view === 'erp' ? 'bg-brand-500 text-white' : 'bg-white text-ink-600 hover:bg-ink-50'"
+          @click="setView('erp')"
+        ><NavIcon name="list" :size="13" /> {{ t("ERP Tasks") }}</button>
       </div>
       <button v-if="view === 'board'" class="btn-outline" @click="load">
         <NavIcon name="refresh" :size="13" /> {{ t("Refresh") }}
@@ -37,6 +43,7 @@
     </div>
 
     <CalendarView v-if="view === 'calendar'" />
+    <ErpTasksPane v-else-if="view === 'erp' && isPurchaseWs" />
 
     <template v-if="view === 'board'">
 
@@ -114,6 +121,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute } from "vue-router";
 import TicketCard from "@/components/TicketCard.vue";
 import CalendarView from "@/components/CalendarView.vue";
+import ErpTasksPane from "@/components/ErpTasksPane.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useToast } from "@/composables/useToast";
@@ -134,6 +142,15 @@ function setView(v) {
   view.value = v;
   localStorage.setItem("th_view", v);
 }
+
+// The ERP pane only exists inside a Purchasing workspace — leaving it (or a
+// stale saved view) falls back to the board.
+const isPurchaseWs = computed(() =>
+  (currentWs.value?.department || "").startsWith("Purchase")
+);
+watch([isPurchaseWs, view], () => {
+  if (view.value === "erp" && !isPurchaseWs.value) setView("board");
+}, { immediate: true });
 
 const loading = ref(true);
 const error = ref("");

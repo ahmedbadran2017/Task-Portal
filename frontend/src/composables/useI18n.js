@@ -185,6 +185,8 @@ const AR = {
   "Reported": "أبلغ عن",
   "Loading…": "جاري التحميل…",
   "Loading scorecards…": "جاري تحميل الأداء…",
+  "ERP Tasks": "مهام ERP",
+  "Read-only — managed in the Purchasing portal": "للعرض فقط — بتتدار من بوابة المشتريات",
 };
 
 const FR = {
@@ -367,6 +369,8 @@ const FR = {
   "Reported": "Signalés",
   "Loading…": "Chargement…",
   "Loading scorecards…": "Chargement des indicateurs…",
+  "ERP Tasks": "Tâches ERP",
+  "Read-only — managed in the Purchasing portal": "Lecture seule — gérées dans le portail Achats",
 };
 
 const DICTS = { ar: AR, fr: FR };
