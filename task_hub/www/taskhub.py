@@ -54,6 +54,13 @@ def get_context(context):
             lang = "en"
     except Exception:
         lang = "en"
+    # Frappe stamps datetimes in the SITE timezone, not UTC. The SPA needs it
+    # to read them correctly for anyone whose browser sits in another zone
+    # (Morocco is UTC+1 while the site runs on Istanbul time).
+    try:
+        time_zone = frappe.db.get_single_value("System Settings", "time_zone") or ""
+    except Exception:
+        time_zone = ""
 
     context.portal_shell = {
         "csrf_token": csrf_token,
@@ -64,4 +71,5 @@ def get_context(context):
         "user_roles": roles,
         "company": company,
         "lang": lang,
+        "time_zone": time_zone,
     }

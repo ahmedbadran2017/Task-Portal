@@ -46,7 +46,7 @@ import NavIcon from "@/components/NavIcon.vue";
 import { useUi } from "@/composables/useUi";
 import { useI18n } from "@/composables/useI18n";
 import { listTickets, PRIORITY_META } from "@/composables/useTickets";
-import { relTime } from "@/composables/useApi";
+import { relTime, parseServerDate } from "@/composables/useApi";
 
 const ui = useUi();
 const { t } = useI18n();
@@ -58,8 +58,12 @@ const now = () => Date.now();
 const H24 = 24 * 3600 * 1000;
 
 function deadlineMs(tk) {
-  const d = tk.sla_deadline ? new Date(String(tk.sla_deadline).replace(" ", "T")).getTime() : Infinity;
-  const due = tk.due_date ? new Date(tk.due_date + "T23:59:59").getTime() : Infinity;
+  // Site-timezone aware, so "due within 24h" means the same thing to a
+  // Morocco browser as it does on the server.
+  const dl = tk.sla_deadline ? parseServerDate(tk.sla_deadline) : null;
+  const d = dl ? dl.getTime() : Infinity;
+  const dueDay = tk.due_date ? parseServerDate(tk.due_date) : null;
+  const due = dueDay ? dueDay.getTime() + 86399000 : Infinity;
   return Math.min(d, due);
 }
 
