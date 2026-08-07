@@ -113,6 +113,20 @@ def normalize_portal(value):
     return value if value in VALID_PORTALS else "Other"
 
 
+def require_portal(value):
+    """Portal is mandatory on the interactive entrypoint: whoever raises a
+    ticket must say where it came from, so "Other" is a deliberate choice
+    rather than an accepted default. Server-side creators (automations,
+    forms, templates) set the field themselves and never come through here.
+    """
+    value = (value or "").strip().title()
+    if not value:
+        frappe.throw(_("Choose which portal this ticket comes from."))
+    if value not in VALID_PORTALS:
+        frappe.throw(_("'{0}' is not a valid portal.").format(value))
+    return value
+
+
 def can_edit_ticket(ticket):
     """A user can edit a ticket if they are a manager, the assignee, or the
     reporter. `ticket` may be a doc or a name."""

@@ -76,8 +76,13 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="label">{{ t("Source Portal") }}</label>
-              <select v-model="form.source_portal" class="input">
+              <label class="label">{{ t("Source Portal") }} *</label>
+              <select
+                v-model="form.source_portal"
+                class="input"
+                :class="!form.source_portal ? '!border-amber-300 bg-amber-50/40' : ''"
+              >
+                <option value="" disabled>{{ t("— Choose a portal —") }}</option>
                 <option v-for="p in PORTALS" :key="p" :value="p">{{ t(p) }}</option>
               </select>
             </div>
@@ -152,7 +157,7 @@
 
         <div class="flex justify-end gap-2 mt-6">
           <button class="btn-outline" @click="close">{{ t("Cancel") }}</button>
-          <button class="btn-primary" :disabled="saving || !form.title.trim()" @click="submit">
+          <button class="btn-primary" :disabled="saving || !canCreate" @click="submit">
             {{ saving ? t("Creating…") : t("Create Ticket") }}
           </button>
         </div>
@@ -162,7 +167,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { reactive, ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
 import AiPolish from "@/components/AiPolish.vue";
 import NavIcon from "@/components/NavIcon.vue";
@@ -265,7 +270,7 @@ const blank = () => ({
   workspace: "",
   ticket_type: "Task",
   priority: "Medium",
-  source_portal: "Other",
+  source_portal: "",
   assigned_to: "",
   due_date: "",
   description: "",
@@ -311,8 +316,10 @@ function close() {
   ui.closeCreate();
 }
 
+const canCreate = computed(() => !!form.title.trim() && !!form.source_portal);
+
 async function submit() {
-  if (!form.title.trim() || saving.value) return;
+  if (!canCreate.value || saving.value) return;
   saving.value = true;
   try {
     // A picked template creates via the template API so its checklist rides along.

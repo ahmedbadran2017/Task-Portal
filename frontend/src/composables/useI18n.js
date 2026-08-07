@@ -312,6 +312,7 @@ const AR = {
     "عدد الساعات اللي التذكرة تفضل مفتوحة فيها حسب الأولوية قبل ما تتحسب متأخرة.",
   "Daily rules that open tickets from live ERP data.":
     "قواعد يومية بتفتح تذاكر من بيانات نكست الحية. مقفولة افتراضيًا.",
+  "— Choose a portal —": "— اختار البوابة —",
   "Page not found": "الصفحة مش موجودة",
   // delete
   "Delete ticket": "حذف التذكرة",
@@ -635,6 +636,7 @@ const FR = {
     "Heures pendant lesquelles un ticket peut rester ouvert selon sa priorité avant d'être hors SLA.",
   "Daily rules that open tickets from live ERP data.":
     "Règles quotidiennes qui créent des tickets à partir des données ERP. Désactivées par défaut.",
+  "— Choose a portal —": "— Choisir un portail —",
   "Page not found": "Page introuvable",
   // delete
   "Delete ticket": "Supprimer le ticket",

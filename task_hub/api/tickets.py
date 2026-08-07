@@ -13,7 +13,7 @@ from frappe.utils import now_datetime
 from frappe.utils.file_manager import save_file
 
 from task_hub.api.utils import (
-    gate_read, can_edit_ticket, normalize_portal, visibility_sql,
+    gate_read, can_edit_ticket, require_portal, visibility_sql,
     can_view_ticket, gate_view, safe_url,
     VALID_TYPES, VALID_PRIORITIES, VALID_STATUSES,
 )
@@ -84,7 +84,7 @@ def create_ticket(**kwargs):
     doc.description = data.get("description") or ""
     doc.ticket_type = ticket_type
     doc.priority = priority
-    doc.source_portal = normalize_portal(data.get("source_portal"))
+    doc.source_portal = require_portal(data.get("source_portal"))
     doc.department = data.get("department") or None
     doc.assigned_to = assigned_to
     doc.due_date = data.get("due_date") or None
