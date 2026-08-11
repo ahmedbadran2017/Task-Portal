@@ -36,9 +36,12 @@ def get_summary():
                           {"me": user})
     unassigned = count(f" AND status IN {OPEN_SQL} AND COALESCE(assigned_to, '') = ''")
 
+    # Tickets raised on a board that doesn't track portals have none; they'd
+    # otherwise pile into one nameless bar.
     by_portal = frappe.db.sql(
         f"""SELECT source_portal AS portal, COUNT(*) AS count
             FROM `tabHub Ticket` WHERE status IN {OPEN_SQL}{vis}
+              AND COALESCE(source_portal, '') != ''
             GROUP BY source_portal ORDER BY count DESC""",
         params, as_dict=True,
     )

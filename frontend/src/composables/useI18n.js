@@ -173,6 +173,7 @@ const AR = {
   "SLA applies": "الـ SLA مفعّل",
   "Members from department": "الأعضاء من قسم",
   "Members added by hand": "أعضاء مضافين يدويًا",
+  "Ask for source portal": "اسأل عن البورتال المصدر",
   "With employees": "أقسام بها موظفون",
   "No employees on file": "أقسام بدون موظفين مسجّلين",
   "No one is filed under this department in HR — add people below.":
@@ -506,6 +507,7 @@ const FR = {
   "SLA applies": "SLA actif",
   "Members from department": "Membres du département",
   "Members added by hand": "Membres ajoutés manuellement",
+  "Ask for source portal": "Demander le portail d'origine",
   "With employees": "Départements avec employés",
   "No employees on file": "Départements sans employés",
   "No one is filed under this department in HR — add people below.":

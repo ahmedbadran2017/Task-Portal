@@ -80,9 +80,11 @@
                 <div class="text-[11px] font-mono text-ink-400">{{ tk.name }}</div>
               </td>
               <td class="px-3 py-3">
-                <span class="text-xs font-medium" :style="{ color: portalColor(tk.source_portal) }">
+                <span v-if="tk.source_portal" class="text-xs font-medium"
+                      :style="{ color: portalColor(tk.source_portal) }">
                   {{ t(tk.source_portal) }}
                 </span>
+                <span v-else class="text-xs text-ink-300">—</span>
               </td>
               <td class="px-3 py-3">
                 <Pill

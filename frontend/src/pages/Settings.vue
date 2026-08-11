@@ -231,10 +231,14 @@
               {{ t("No one is filed under this department in HR — add people below.") }}
             </p>
           </div>
-          <div class="flex items-end pb-1">
+          <div class="flex flex-col justify-end gap-2 pb-1">
             <label class="flex items-center gap-2.5 text-sm text-ink-700">
               <Toggle v-model="wsForm.use_sla" />
               {{ t("SLA applies") }}
+            </label>
+            <label class="flex items-center gap-2.5 text-sm text-ink-700">
+              <Toggle v-model="wsForm.track_source_portal" />
+              {{ t("Ask for source portal") }}
             </label>
           </div>
         </div>
@@ -723,6 +727,9 @@ function startNewWs() {
     department: "",
     extra_members: [],
     use_sla: 1,
+    // A brand-new board is a department board far more often than it's a
+    // second cross-portal inbox.
+    track_source_portal: 0,
     stages: [
       { stage_name: "To Do", maps_to: "Open", color: "#3b82f6" },
       { stage_name: "Doing", maps_to: "In Progress", color: "#a16207" },
@@ -744,6 +751,7 @@ function startEditWs(w) {
       .map((s) => s.trim())
       .filter(Boolean),
     use_sla: w.use_sla,
+    track_source_portal: w.track_source_portal,
     stages: w.stages.map((s) => ({ ...s })),
   };
 }

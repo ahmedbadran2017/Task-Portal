@@ -47,6 +47,7 @@ def list_workspaces():
             "department": ws.department,
             "extra_members": ws.extra_members or "",
             "use_sla": ws.use_sla,
+            "track_source_portal": ws.track_source_portal,
             "is_default": ws.is_default,
             "is_member": user in members,
             "members": members,
@@ -75,8 +76,9 @@ def save_workspace(**kwargs):
     for f in ("icon", "color", "department", "extra_members"):
         if f in kwargs and kwargs[f] is not None:
             doc.set(f, kwargs[f] or None)
-    if "use_sla" in kwargs:
-        doc.use_sla = 1 if kwargs["use_sla"] in (1, "1", True, "true") else 0
+    for flag in ("use_sla", "track_source_portal"):
+        if flag in kwargs:
+            doc.set(flag, 1 if kwargs[flag] in (1, "1", True, "true") else 0)
 
     stages = kwargs.get("stages")
     if stages:

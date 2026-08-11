@@ -11,3 +11,4 @@ task_hub.patches.v0_4_marketing_workspace
 # Doctype tables exist by the time these run — required for seeding docs
 # on a site's very first migrate (v0_4's silent no-op taught us that).
 task_hub.patches.v0_5_department_workspaces
+task_hub.patches.v0_6_portal_only_on_intake

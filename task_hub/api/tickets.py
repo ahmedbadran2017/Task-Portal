@@ -79,12 +79,18 @@ def create_ticket(**kwargs):
     if assigned_to and not frappe.db.exists("User", assigned_to):
         assigned_to = None  # silently drop unknown assignees rather than failing the report
 
+    # The board decides whether the portal question is even asked, so it has
+    # to be resolved before the portal is validated.
+    target_ws = data.get("workspace")
+    if target_ws and not frappe.db.exists("Hub Workspace", target_ws):
+        target_ws = None
+
     doc = frappe.new_doc("Hub Ticket")
     doc.title = title[:180]
     doc.description = data.get("description") or ""
     doc.ticket_type = ticket_type
     doc.priority = priority
-    doc.source_portal = require_portal(data.get("source_portal"))
+    doc.source_portal = require_portal(data.get("source_portal"), target_ws)
     doc.department = data.get("department") or None
     doc.assigned_to = assigned_to
     doc.due_date = data.get("due_date") or None
@@ -93,9 +99,8 @@ def create_ticket(**kwargs):
     doc.linked_name = data.get("linked_name") or None
     doc.linked_label = data.get("linked_label") or None
     doc.linked_url = safe_url(data.get("linked_url"))
-    ws = data.get("workspace")
-    if ws and frappe.db.exists("Hub Workspace", ws):
-        doc.workspace = ws
+    if target_ws:
+        doc.workspace = target_ws
     doc.insert(ignore_permissions=True)
 
     frappe.db.commit()

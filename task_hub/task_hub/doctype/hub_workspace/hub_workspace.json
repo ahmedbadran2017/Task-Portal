@@ -12,6 +12,7 @@
   "department",
   "extra_members",
   "use_sla",
+  "track_source_portal",
   "is_default",
   "section_stages",
   "stages"
@@ -24,6 +25,7 @@
   {"fieldname": "department", "fieldtype": "Link", "options": "Department", "label": "Department", "description": "Members come from this department's active employees."},
   {"fieldname": "extra_members", "fieldtype": "Small Text", "label": "Extra Members", "description": "Comma-separated user IDs added on top of the department."},
   {"fieldname": "use_sla", "fieldtype": "Check", "label": "SLA applies", "default": "1", "description": "Off for creative/planning flows where deadlines are per-task, not per-priority."},
+  {"fieldname": "track_source_portal", "fieldtype": "Check", "label": "Ask for source portal", "default": "1", "description": "On for cross-portal intake (technical support). Off for a department's own board, where 'which portal did this come from' has no answer."},
   {"fieldname": "is_default", "fieldtype": "Check", "label": "Default Workspace", "read_only": 1},
   {"fieldname": "section_stages", "fieldtype": "Section Break", "label": "Stages (board columns, in order)"},
   {"fieldname": "stages", "fieldtype": "Table", "options": "Hub Workspace Stage", "label": "Stages"}

@@ -116,7 +116,7 @@ const Row = (props, { emit }) =>
     h("span", { class: "min-w-0 flex-1" }, [
       h("span", { class: "block text-sm font-medium text-ink-900 truncate" }, props.tk.title),
       h("span", { class: "block text-[11px] text-ink-400" },
-        `${props.tk.name} · ${props.tk.source_portal}`),
+        [props.tk.name, props.tk.source_portal].filter(Boolean).join(" · ")),
     ]),
     h("span", { class: "text-[11px] text-ink-400 shrink-0" },
       props.tk.sla_deadline ? relTime(props.tk.sla_deadline) : ""),

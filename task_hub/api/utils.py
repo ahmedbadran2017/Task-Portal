@@ -113,13 +113,41 @@ def normalize_portal(value):
     return value if value in VALID_PORTALS else "Other"
 
 
-def require_portal(value):
-    """Portal is mandatory on the interactive entrypoint: whoever raises a
-    ticket must say where it came from, so "Other" is a deliberate choice
-    rather than an accepted default. Server-side creators (automations,
-    forms, templates) set the field themselves and never come through here.
+def workspace_tracks_portal(workspace):
+    """Does this board ask where work came from?
+
+    Only cross-portal intake (technical support) does. On a department's own
+    board the question has no answer, so the field is neither asked for nor
+    required. An unknown/missing workspace falls back to the default board's
+    setting, which is what such a ticket will land on anyway.
+    """
+    if workspace:
+        value = frappe.db.get_value("Hub Workspace", workspace, "track_source_portal")
+        if value is not None:
+            return bool(value)
+    from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
+        get_default_workspace)
+    default = get_default_workspace()
+    if not default:
+        return True
+    return bool(frappe.db.get_value("Hub Workspace", default, "track_source_portal"))
+
+
+def require_portal(value, workspace=None):
+    """Portal is mandatory on the interactive entrypoint — but only on boards
+    that track it: whoever raises a support ticket must say where it came
+    from, so "Other" is a deliberate choice rather than an accepted default.
+
+    On a board that doesn't track portals the value is dropped rather than
+    coerced to "Other", so the portal reports stay honest: an "Other" bucket
+    stuffed with design tasks would be worse than no row at all.
+
+    Server-side creators (automations, forms, templates) set the field
+    themselves and never come through here.
     """
     value = (value or "").strip().title()
+    if not workspace_tracks_portal(workspace):
+        return value if value in VALID_PORTALS else None
     if not value:
         frappe.throw(_("Choose which portal this ticket comes from."))
     if value not in VALID_PORTALS:

@@ -12,7 +12,9 @@
             <div v-if="data" class="min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="text-[11px] font-mono text-ink-400">{{ data.ticket.name }}</span>
-                <Pill :label="data.ticket.source_portal" :color="portalMeta.color" bg="#fafaf9" dot />
+                <!-- department boards don't record a portal — no empty pill -->
+                <Pill v-if="data.ticket.source_portal" :label="data.ticket.source_portal"
+                      :color="portalMeta.color" bg="#fafaf9" dot />
                 <Pill v-if="data.ticket.sla_breached" :label="t('SLA breached')" color="#e11d48" bg="#fff1f2" />
               </div>
               <input

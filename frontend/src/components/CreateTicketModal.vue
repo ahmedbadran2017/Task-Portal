@@ -74,8 +74,10 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
+          <!-- Portal only belongs on the cross-portal intake board; on a
+               department's own board the question has no answer. -->
+          <div class="grid gap-3" :class="asksPortal ? 'grid-cols-2' : 'grid-cols-1'">
+            <div v-if="asksPortal">
               <label class="label">{{ t("Source Portal") }} *</label>
               <select
                 v-model="form.source_portal"
@@ -86,7 +88,7 @@
                 <option v-for="p in PORTALS" :key="p" :value="p">{{ t(p) }}</option>
               </select>
             </div>
-            <div>
+            <div :class="asksPortal ? '' : 'w-44'">
               <label class="label">{{ t("Due Date") }}</label>
               <input v-model="form.due_date" type="date" class="input" />
             </div>
@@ -247,6 +249,9 @@ async function loadTemplates() {
 
 function onWorkspaceChange() {
   templateName.value = "";
+  // Don't smuggle a portal picked before the switch onto a board that no
+  // longer shows the field.
+  if (!asksPortal.value) form.source_portal = "";
   loadTemplates();
 }
 
@@ -316,7 +321,19 @@ function close() {
   ui.closeCreate();
 }
 
-const canCreate = computed(() => !!form.title.trim() && !!form.source_portal);
+// Boards other than the cross-portal intake one don't ask where work came
+// from — so it can't be a requirement there either. A workspace list that
+// hasn't loaded yet leaves the field on, matching the server's fallback.
+const asksPortal = computed(() => {
+  const w = workspaces.value.find((x) => x.name === form.workspace);
+  if (w) return !!w.track_source_portal;
+  const def = workspaces.value.find((x) => x.is_default);
+  return def ? !!def.track_source_portal : true;
+});
+
+const canCreate = computed(
+  () => !!form.title.trim() && (!asksPortal.value || !!form.source_portal)
+);
 
 async function submit() {
   if (!canCreate.value || saving.value) return;

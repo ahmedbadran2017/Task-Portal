@@ -6,6 +6,7 @@
     <div class="flex items-start justify-between gap-2">
       <div class="flex items-center gap-1.5 min-w-0">
         <span
+          v-if="ticket.source_portal"
           class="w-2 h-2 rounded-full shrink-0"
           :style="{ background: portalMeta.color }"
           :title="ticket.source_portal"
@@ -44,11 +45,11 @@
 
     <div class="mt-3 flex items-center justify-between gap-2">
       <div class="flex items-center gap-1.5 min-w-0">
-        <span class="text-[11px] font-medium" :style="{ color: portalMeta.color }">
+        <span v-if="ticket.source_portal" class="text-[11px] font-medium" :style="{ color: portalMeta.color }">
           {{ ticket.source_portal }}
         </span>
         <span v-if="ticket.assigned_to" class="text-[11px] text-ink-400 truncate">
-          · {{ shortUser(ticket.assigned_to) }}
+          <template v-if="ticket.source_portal">· </template>{{ shortUser(ticket.assigned_to) }}
         </span>
       </div>
       <span
