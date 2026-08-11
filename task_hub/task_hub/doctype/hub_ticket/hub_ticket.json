@@ -28,6 +28,9 @@
   "sla_deadline",
   "sla_breached",
   "resolved_on",
+  "started_on",
+  "lead_time_hours",
+  "cycle_time_hours",
   "auto_generated",
   "sla_warning_sent",
   "sla_breach_notified",
@@ -199,6 +202,30 @@
    "label": "Resolved On",
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1,
+   "description": "First time the ticket left the queue and became active work."
+  },
+  {
+   "fieldname": "lead_time_hours",
+   "fieldtype": "Float",
+   "label": "Lead Time (h)",
+   "read_only": 1,
+   "precision": "2",
+   "search_index": 1,
+   "description": "Raised → resolved. The whole wait, as the requester experienced it."
+  },
+  {
+   "fieldname": "cycle_time_hours",
+   "fieldtype": "Float",
+   "label": "Cycle Time (h)",
+   "read_only": 1,
+   "precision": "2",
+   "description": "Started → resolved. The part that was actual work; lead time minus this is queue time."
   },
   {
    "fieldname": "auto_generated",

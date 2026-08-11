@@ -31,6 +31,11 @@
         <option value="assigned">{{ t("Assigned to me") }}</option>
         <option value="reported">{{ t("Raised by me") }}</option>
       </select>
+      <select v-model="sort" class="input !w-auto" @change="reload">
+        <option value="modified desc">{{ t("Updated") }}</option>
+        <option value="lead_time_hours desc">{{ t("Slowest first") }}</option>
+        <option value="due_date asc">{{ t("Due Date") }}</option>
+      </select>
       <div class="flex items-center gap-1.5">
         <button
           v-for="c in quickChips"
@@ -72,6 +77,7 @@
               <th class="px-3 py-3 font-semibold">{{ t("Status") }}</th>
               <th class="px-3 py-3 font-semibold">{{ t("Assignee") }}</th>
               <th class="px-3 py-3 font-semibold">SLA</th>
+              <th class="px-3 py-3 font-semibold">{{ t("Lead time") }}</th>
               <th class="px-4 py-3 font-semibold">{{ t("Updated") }}</th>
             </tr>
           </thead>
@@ -125,15 +131,25 @@
                   <NavIcon name="calendar" :size="10" /> {{ tk.due_date }}
                 </span>
               </td>
+              <td class="px-3 py-3 whitespace-nowrap">
+                <span v-if="tk.lead_time_hours != null" class="text-xs font-medium text-ink-700">
+                  {{ fmtDuration(tk.lead_time_hours) }}
+                </span>
+                <!-- still open: the clock is running, which is the number
+                     worth seeing while it can still be acted on -->
+                <span v-else class="text-xs text-ink-400">
+                  {{ fmtDuration(openHours(tk)) }}…
+                </span>
+              </td>
               <td class="px-4 py-3 text-ink-400 text-xs whitespace-nowrap">
                 {{ relTime(tk.modified) }}
               </td>
             </tr>
             <tr v-for="i in (loading && !tickets.length ? 5 : 0)" :key="'sk' + i">
-              <td colspan="7" class="px-4 py-2"><div class="skeleton h-9" /></td>
+              <td colspan="8" class="px-4 py-2"><div class="skeleton h-9" /></td>
             </tr>
             <tr v-if="!tickets.length && !loading">
-              <td colspan="7" class="px-4 py-10 text-center text-ink-400">{{ t("No tickets match.") }}</td>
+              <td colspan="8" class="px-4 py-10 text-center text-ink-400">{{ t("No tickets match.") }}</td>
             </tr>
           </tbody>
         </table>
@@ -164,7 +180,7 @@ import {
   STATUSES, PORTALS, PRIORITIES, TYPES, PRIORITY_META, STATUS_META, PORTAL_META,
   listTickets,
 } from "@/composables/useTickets";
-import { relTime, isManager } from "@/composables/useApi";
+import { relTime, isManager, fmtDuration, parseServerDate } from "@/composables/useApi";
 
 const ui = useUi();
 const { t } = useI18n();
@@ -195,6 +211,16 @@ const filters = reactive({
 // The unassigned pool only means something to managers — everyone else's
 // list is already scoped to their own tickets.
 // computed, so the labels follow a live language switch
+// Kept out of `filters` on purpose: cleaned() forwards that object straight to
+// the API, which takes an explicit param list.
+const sort = ref("modified desc");
+
+// How long an unresolved ticket has been waiting so far.
+function openHours(tk) {
+  if (!tk.creation) return null;
+  return (Date.now() - parseServerDate(tk.creation).getTime()) / 3600000;
+}
+
 const quickChips = computed(() => [
   ...(isManager() ? [{ key: "unassigned", label: t("Unassigned") }] : []),
   { key: "breached_only", label: t("SLA breached") },
@@ -225,7 +251,7 @@ async function load() {
       workspace: currentWsName.value || undefined,
       limit,
       start: start.value,
-      order_by: "modified desc",
+      order_by: sort.value,
     });
     tickets.value = res.tickets || [];
     total.value = res.total || 0;
@@ -266,7 +292,8 @@ async function exportCsv() {
     const rows = res.tickets || [];
     const cols = ["name", "title", "ticket_type", "priority", "status", "source_portal",
                   "department", "reported_by", "assigned_to", "due_date", "sla_deadline",
-                  "sla_breached", "resolved_on", "creation"];
+                  "sla_breached", "started_on", "resolved_on", "creation",
+                  "lead_time_hours", "cycle_time_hours"];
     const esc = (v) => '"' + String(v ?? "").replace(/"/g, '""') + '"';
     const csv = [cols.join(",")]
       .concat(rows.map((r) => cols.map((c) => esc(r[c])).join(",")))

@@ -35,6 +35,7 @@ LIST_FIELDS = [
     "due_date", "sla_deadline", "sla_breached", "resolved_on",
     "linked_label", "linked_url", "creation", "modified",
     "workspace", "stage", "blocked_by",
+    "started_on", "lead_time_hours", "cycle_time_hours",
 ]
 
 
@@ -183,6 +184,8 @@ def list_tickets(status=None, priority=None, source_portal=None,
     allowed_order = {
         "modified desc", "modified asc", "creation desc", "creation asc",
         "priority asc", "due_date asc", "sla_deadline asc",
+        # "what took longest" is the question lead time exists to answer
+        "lead_time_hours desc", "lead_time_hours asc",
     }
     order_by = order_by if order_by in allowed_order else "modified desc"
 

@@ -220,6 +220,32 @@ export function relTime(value) {
   return d.toLocaleDateString(intlLocale(), { day: "2-digit", month: "short" });
 }
 
+// Elapsed durations read as answers ("1d 7h"), not decimals ("31.5"). Intl
+// supplies the unit words, so Arabic and French don't need their own table.
+export function fmtDuration(hours) {
+  if (hours == null || hours === "") return "";
+  const h = Number(hours);
+  if (!isFinite(h) || h < 0) return "";
+  const unit = (value, u) => {
+    try {
+      return new Intl.NumberFormat(intlLocale(), {
+        style: "unit", unit: u, unitDisplay: "narrow", maximumFractionDigits: 0,
+      }).format(value);
+    } catch {
+      return `${value}${u[0]}`;
+    }
+  };
+  // Below an hour, minutes; a sub-hour ticket shown as "0h" reads as a bug.
+  if (h < 1) return unit(Math.max(1, Math.round(h * 60)), "minute");
+  // Round to hours FIRST, so 23.6h becomes "1d" rather than the "24h" that
+  // sits awkwardly beside it in a sorted column.
+  const totalH = Math.round(h);
+  if (totalH < 24) return unit(totalH, "hour");
+  const days = Math.floor(totalH / 24);
+  const rest = totalH - days * 24;
+  return rest ? `${unit(days, "day")} ${unit(rest, "hour")}` : unit(days, "day");
+}
+
 export function fmtDate(value) {
   if (!value) return "—";
   const d = parseServerDate(value);

@@ -338,6 +338,17 @@
                 <Meta v-if="data.ticket.due_date" :label="t('Due')" :value="fmtDate(data.ticket.due_date)" />
               </div>
 
+              <!-- How long this took, split into the part someone worked on it
+                   and the part it sat in a queue — the split is the actionable
+                   half, since queue time is what a team can usually cut. -->
+              <div v-if="timing" class="pt-2 border-t border-ink-200/60 space-y-2.5 text-sm">
+                <Meta :label="t(timing.label)" :value="timing.lead" />
+                <template v-if="timing.cycle">
+                  <Meta :label="t('Worked on')" :value="timing.cycle" />
+                  <Meta :label="t('Waiting in queue')" :value="timing.queue" />
+                </template>
+              </div>
+
               <!-- danger zone: only the reporter or a manager, behind a
                    two-step confirm so it can't be hit by accident -->
               <div v-if="canDelete" class="pt-3 border-t border-ink-200/60">
@@ -392,7 +403,7 @@ import {
   uploadAttachment, deleteAttachment, isImage, fmtSize,
   setBlockedBy, listTickets, deleteTicket,
 } from "@/composables/useTickets";
-import { fmtDate, relTime, currentUserId, hasRole } from "@/composables/useApi";
+import { fmtDate, relTime, currentUserId, hasRole, parseServerDate, fmtDuration } from "@/composables/useApi";
 
 const Meta = (props) =>
   h("div", [
@@ -488,6 +499,26 @@ const ticketStages = computed(() => {
 const portalMeta = computed(
   () => PORTAL_META[data.value?.ticket?.source_portal] || PORTAL_META.Other
 );
+
+const timing = computed(() => {
+  const tk = data.value?.ticket;
+  if (!tk) return null;
+  // Still open: show the clock running rather than nothing, so lead time is
+  // visible while it can still be acted on.
+  if (tk.lead_time_hours == null) {
+    if (!tk.creation) return null;
+    const openH = (Date.now() - parseServerDate(tk.creation).getTime()) / 3600000;
+    return { label: "Open for", lead: fmtDuration(openH), cycle: "", queue: "" };
+  }
+  const lead = Number(tk.lead_time_hours);
+  const cycle = tk.cycle_time_hours == null ? null : Number(tk.cycle_time_hours);
+  return {
+    label: "Lead time",
+    lead: fmtDuration(lead),
+    cycle: cycle == null ? "" : fmtDuration(cycle),
+    queue: cycle == null ? "" : fmtDuration(Math.max(0, lead - cycle)),
+  };
+});
 
 // Every load carries a token; a slower response for a ticket the user has
 // already navigated away from is dropped. Without it, clicking A then B

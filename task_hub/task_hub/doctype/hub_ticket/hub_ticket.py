@@ -31,6 +31,22 @@ PORTAL_DEPARTMENT = {
 # Statuses that mean the ticket is done — freeze the SLA clock here.
 CLOSED_STATES = {"Resolved", "Closed", "Cancelled"}
 
+# Anything past the queue but not yet finished: the ticket is being worked on.
+ACTIVE_STATES = {"In Progress", "In Review"}
+
+
+def hours_between(start, end):
+    """Whole elapsed hours between two stamps, or None if either is missing.
+
+    Deliberately wall-clock, not working-hours: the requester waiting on a
+    ticket over a weekend really did wait, and a lead time that quietly
+    subtracts nights and holidays flatters the team at the reader's expense.
+    """
+    if not (start and end):
+        return None
+    delta = get_datetime(end) - get_datetime(start)
+    return round(max(0.0, delta.total_seconds() / 3600.0), 2)
+
 
 def _sla_hours():
     from task_hub.task_hub.doctype.task_hub_settings.task_hub_settings import get_sla_hours
@@ -49,6 +65,9 @@ class HubTicket(Document):
         self._sync_department()
         self._sync_workspace()
         self._set_sla_deadline()
+        # Automations can open a ticket straight into active work.
+        if self.status in ACTIVE_STATES and not self.started_on:
+            self.started_on = now_datetime()
         self.append("activity", {
             "activity_on": now_datetime(),
             "actor": frappe.session.user,
@@ -75,6 +94,11 @@ class HubTicket(Document):
 
         # Status transitions
         if before.status != self.status:
+            # Stamped once and never moved: bouncing In Progress → Open → In
+            # Progress is one interrupted job, not a fresh start, and resetting
+            # the clock would erase exactly the delay worth seeing.
+            if self.status in ACTIVE_STATES and not self.started_on:
+                self.started_on = now_datetime()
             self._log("Status changed", _("{0} → {1}").format(before.status, self.status))
             self._notify_watchers(
                 "status", _("{0}: {1} → {2}").format(self.name, before.status, self.status))
@@ -116,8 +140,26 @@ class HubTicket(Document):
             self._log("Priority changed", _("{0} → {1}").format(before.priority, self.priority))
 
         self._refresh_breach_flag()
+        self._stamp_durations()
 
     # -------------------------------------------------------------- helpers
+    def _stamp_durations(self):
+        """Freeze lead/cycle time on resolution; clear them if it reopens.
+
+        Stored rather than derived on read so the numbers can be sorted,
+        exported, and aggregated in SQL alongside everything else — and so a
+        later edit to the ticket can't silently move a finished ticket's
+        measurement.
+        """
+        if not self.resolved_on:
+            self.lead_time_hours = None
+            self.cycle_time_hours = None
+            return
+        self.lead_time_hours = hours_between(self.creation, self.resolved_on)
+        # No start stamp means the ticket predates this tracking (or jumped
+        # straight from the queue to done) — leave it empty rather than
+        # inventing a cycle time equal to the lead time.
+        self.cycle_time_hours = hours_between(self.started_on, self.resolved_on)
     def _sync_workspace(self):
         """Every ticket lives in a workspace. Unrouted tickets go to the
         workspace owning the reporter's department (so each team's work lands
