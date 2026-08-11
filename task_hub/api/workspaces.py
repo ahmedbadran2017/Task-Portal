@@ -45,6 +45,7 @@ def list_workspaces():
             "icon": ws.icon or "🗂️",
             "color": ws.color or "#d45d3e",
             "department": ws.department,
+            "extra_members": ws.extra_members or "",
             "use_sla": ws.use_sla,
             "is_default": ws.is_default,
             "is_member": user in members,
@@ -169,10 +170,50 @@ def set_ticket_workspace(name, workspace):
 
 @frappe.whitelist()
 def list_departments():
-    """Departments that have active employees — for the workspace form."""
-    gate_read()
-    return frappe.db.sql(
-        """SELECT department AS name, COUNT(*) AS employees
-           FROM `tabEmployee`
-           WHERE status = 'Active' AND department IS NOT NULL
-           GROUP BY department ORDER BY employees DESC""", as_dict=True)
+    """Every real department, with its active headcount — for the workspace form.
+
+    Driven by `tabDepartment`, not by grouping `tabEmployee`: the old query
+    could only ever list departments that already had staff, so a real team
+    like Media Buying (whose people are filed under Marketing in HR) was
+    simply absent from the picker with no explanation. Now it shows with
+    `employees = 0`, and the form offers the manual member list instead.
+
+    Group nodes (the tree's folders, e.g. "All Departments") are skipped —
+    employees are never filed against them.
+    """
+    # Managers only: the rows carry members' login ids, which is more than a
+    # regular user needs, and the workspace form is manager-only anyway.
+    gate_manager()
+    counts = {}
+    logins = {}
+    # HR docs are permission-gated per department; the picker needs the whole
+    # org chart, so read it as the system (the endpoint itself is the gate).
+    for r in frappe.get_all(
+        "Employee", filters={"status": "Active", "department": ["is", "set"]},
+        fields=["department", "user_id"], limit_page_length=0,
+        ignore_permissions=True,
+    ):
+        counts[r.department] = counts.get(r.department, 0) + 1
+        if r.user_id:
+            logins.setdefault(r.department, []).append(r.user_id)
+
+    meta = frappe.get_meta("Department")
+    filters = {}
+    if meta.has_field("is_group"):
+        filters["is_group"] = 0
+    if meta.has_field("disabled"):
+        filters["disabled"] = 0
+    names = frappe.get_all("Department", filters=filters, pluck="name",
+                           limit_page_length=0, ignore_permissions=True)
+
+    # A department row can go missing from the tree while its employees keep
+    # pointing at it; keep those visible rather than silently dropping people.
+    for orphan in set(counts) - set(names):
+        names.append(orphan)
+
+    # `members` (people with a login) is what the workspace actually inherits;
+    # `employees` is raw headcount, which can be higher.
+    rows = [{"name": n, "employees": counts.get(n, 0),
+             "members": sorted(logins.get(n, []))} for n in names]
+    rows.sort(key=lambda r: (-r["employees"], r["name"]))
+    return rows

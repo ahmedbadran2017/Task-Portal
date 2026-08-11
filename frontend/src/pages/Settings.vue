@@ -216,10 +216,20 @@
             <label class="label">{{ t("Members from department") }}</label>
             <select v-model="wsForm.department" class="input">
               <option value="">—</option>
-              <option v-for="d in departments" :key="d.name" :value="d.name">
-                {{ d.name }} ({{ d.employees }})
-              </option>
+              <optgroup v-if="staffedDepts.length" :label="t('With employees')">
+                <option v-for="d in staffedDepts" :key="d.name" :value="d.name">
+                  {{ d.name }} ({{ d.employees }})
+                </option>
+              </optgroup>
+              <optgroup v-if="emptyDepts.length" :label="t('No employees on file')">
+                <option v-for="d in emptyDepts" :key="d.name" :value="d.name">
+                  {{ d.name }} (0)
+                </option>
+              </optgroup>
             </select>
+            <p v-if="pickedDeptEmpty" class="text-[11px] text-amber-700 mt-1">
+              {{ t("No one is filed under this department in HR — add people below.") }}
+            </p>
           </div>
           <div class="flex items-end pb-1">
             <label class="flex items-center gap-2.5 text-sm text-ink-700">
@@ -227,6 +237,19 @@
               {{ t("SLA applies") }}
             </label>
           </div>
+        </div>
+
+        <div>
+          <label class="label">{{ t("Members added by hand") }}</label>
+          <MemberPicker
+            v-model="wsForm.extra_members"
+            :users="users"
+            :inherited="deptMembers"
+            :placeholder="t('Add people…')"
+          />
+          <p class="text-[11px] text-ink-400 mt-1">
+            {{ t("Total members: {0}", deptMembers.length + wsForm.extra_members.filter((m) => !deptMembers.includes(m)).length) }}
+          </p>
         </div>
 
         <div>
@@ -652,6 +675,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, h } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
+import MemberPicker from "@/components/MemberPicker.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
@@ -679,12 +703,25 @@ const departments = ref([]);
 const wsForm = ref(null);
 const savingWs = ref(false);
 
+// Departments with nobody on file still belong in the picker — they just can't
+// supply members, so the form steers you to the manual list instead.
+const staffedDepts = computed(() => departments.value.filter((d) => d.employees > 0));
+const emptyDepts = computed(() => departments.value.filter((d) => !d.employees));
+const deptMembers = computed(() => {
+  const d = departments.value.find((x) => x.name === wsForm.value?.department);
+  return d?.members || [];
+});
+const pickedDeptEmpty = computed(
+  () => !!wsForm.value?.department && !deptMembers.value.length
+);
+
 function startNewWs() {
   wsForm.value = {
     workspace_name: "",
     icon: "🗂️",
     color: "#d45d3e",
     department: "",
+    extra_members: [],
     use_sla: 1,
     stages: [
       { stage_name: "To Do", maps_to: "Open", color: "#3b82f6" },
@@ -702,6 +739,10 @@ function startEditWs(w) {
     icon: w.icon,
     color: w.color,
     department: w.department || "",
+    extra_members: String(w.extra_members || "")
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean),
     use_sla: w.use_sla,
     stages: w.stages.map((s) => ({ ...s })),
   };
@@ -710,7 +751,12 @@ function startEditWs(w) {
 async function saveWs() {
   savingWs.value = true;
   try {
-    await saveWorkspace(wsForm.value);
+    // The doctype stores extras as a comma-separated Small Text; an empty
+    // list must round-trip as "" so removing everyone actually sticks.
+    await saveWorkspace({
+      ...wsForm.value,
+      extra_members: (wsForm.value.extra_members || []).join(", "),
+    });
     wsForm.value = null;
     await reloadWs();
     toast.success("Workspace saved");
