@@ -119,6 +119,9 @@ def list_tickets(status=None, priority=None, source_portal=None,
     Non-managers only ever see their own tickets (reporter, assignee, or
     watcher) — the visibility fragment ANDs with every other filter, so it
     composes with search unlike frappe.get_all's single or_filters group.
+
+    `mine` is a scope, not a flag: "assigned", "reported", or anything truthy
+    for both (the default, and what a bare `mine=1` deep link means).
     """
     gate_read()
     conds, params = ["1=1"], {}
@@ -153,8 +156,21 @@ def list_tickets(status=None, priority=None, source_portal=None,
         eq("reported_by", reported_by)
     if int(breached_only or 0):
         conds.append("sla_breached = 1")
-    if int(mine or 0):
-        conds.append("assigned_to = %(mine_user)s")
+    # "Mine" used to mean assigned_to only, which quietly hid every ticket you
+    # raised and handed to someone else — you could no longer find your own
+    # request. It now defaults to both sides of the handover, matching the
+    # in-portal panel's `my_tasks` scopes; pass "assigned"/"reported" to narrow.
+    mine_scope = str(mine or "").strip().lower()
+    if mine_scope in ("0", "false", "none"):
+        mine_scope = ""
+    if mine_scope:
+        if mine_scope == "assigned":
+            conds.append("assigned_to = %(mine_user)s")
+        elif mine_scope == "reported":
+            conds.append("reported_by = %(mine_user)s")
+        else:
+            conds.append(
+                "(assigned_to = %(mine_user)s OR reported_by = %(mine_user)s)")
         params["mine_user"] = frappe.session.user
     if search:
         conds.append("(title LIKE %(search)s OR name LIKE %(search)s)")

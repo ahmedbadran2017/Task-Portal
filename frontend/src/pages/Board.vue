@@ -10,7 +10,8 @@
         <option value="">{{ t("Any priority") }}</option>
         <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
       </select>
-      <label class="flex items-center gap-2 text-sm text-ink-600 ml-1">
+      <label class="flex items-center gap-2 text-sm text-ink-600 ms-1"
+             :title="t('Assigned to me or raised by me')">
         <input type="checkbox" v-model="filters.mine" class="rounded" @change="load" />
         {{ t("My tickets") }}
       </label>
@@ -222,7 +223,7 @@ async function load() {
       source_portal: filters.source_portal || undefined,
       priority: filters.priority || undefined,
       workspace: currentWsName.value || undefined,
-      mine: filters.mine ? 1 : 0,
+      mine: filters.mine ? "involved" : "",
       breached_only: filters.breached_only ? 1 : 0,
       limit: 300,
       order_by: "modified desc",

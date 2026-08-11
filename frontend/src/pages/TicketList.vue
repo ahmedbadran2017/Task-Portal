@@ -24,6 +24,13 @@
         <option value="">{{ t("Any type") }}</option>
         <option v-for="tp in TYPES" :key="tp" :value="tp">{{ t(tp) }}</option>
       </select>
+      <!-- one chip couldn't say whether "mine" meant I do it or I asked for it -->
+      <select v-model="filters.mine" class="input !w-auto" @change="reload">
+        <option value="">{{ t("Anyone's") }}</option>
+        <option value="involved">{{ t("Mine — both") }}</option>
+        <option value="assigned">{{ t("Assigned to me") }}</option>
+        <option value="reported">{{ t("Raised by me") }}</option>
+      </select>
       <div class="flex items-center gap-1.5">
         <button
           v-for="c in quickChips"
@@ -157,7 +164,7 @@ import {
   STATUSES, PORTALS, PRIORITIES, TYPES, PRIORITY_META, STATUS_META, PORTAL_META,
   listTickets,
 } from "@/composables/useTickets";
-import { relTime, currentUserId, isManager } from "@/composables/useApi";
+import { relTime, isManager } from "@/composables/useApi";
 
 const ui = useUi();
 const { t } = useI18n();
@@ -179,7 +186,7 @@ const filters = reactive({
   priority: "",
   ticket_type: "",
   breached_only: 0,
-  mine: 0,
+  mine: "",
   unassigned: 0,
   reported_by: "",
   department: "",
@@ -189,7 +196,6 @@ const filters = reactive({
 // list is already scoped to their own tickets.
 // computed, so the labels follow a live language switch
 const quickChips = computed(() => [
-  { key: "mine", label: t("Mine") },
   ...(isManager() ? [{ key: "unassigned", label: t("Unassigned") }] : []),
   { key: "breached_only", label: t("SLA breached") },
 ]);
@@ -198,9 +204,11 @@ const quickChips = computed(() => [
 function applyRouteQuery() {
   const q = route.query || {};
   filters.breached_only = q.breached ? 1 : 0;
-  filters.mine = q.mine ? 1 : 0;
+  // ?mine=1 is the dashboard's "My Queue" tile — it counts assignments, so it
+  // deep-links to the assigned scope rather than the wider default.
+  filters.mine = q.mine ? "assigned" : q.reported ? "reported" : "";
   filters.unassigned = q.unassigned ? 1 : 0;
-  filters.reported_by = q.reported ? currentUserId() : "";
+  filters.reported_by = "";
   if (typeof q.status === "string" && STATUSES.includes(q.status)) filters.status = q.status;
   filters.department = typeof q.department === "string" ? q.department : "";
   if (typeof q.portal === "string" && PORTALS.includes(q.portal)) filters.source_portal = q.portal;
