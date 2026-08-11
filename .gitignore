@@ -7,3 +7,6 @@ node_modules/
 .env.local
 dist/
 *.log
+
+# Local MCP tooling telemetry — machine state, not project source.
+.token-optimizer/
