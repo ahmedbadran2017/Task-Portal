@@ -53,6 +53,17 @@ def _sendmail(recipients, subject, message):
                          title="task_hub: sendmail failed")
 
 
+def hub_url(path="/taskhub"):
+    """Absolute link into the SPA — see task_hub.notify.hub_url for why these
+    can't be relative once they leave for a mail client."""
+    from task_hub.notify import hub_url as _u
+    return _u(path)
+
+
+def _link(href, label):
+    return f'<a href="{href}">{label}</a>'
+
+
 def _ticket_link(name):
     from task_hub.notify import deep_link
     return f'<a href="{deep_link(name)}">{name}</a>'
@@ -308,7 +319,8 @@ def notify_sla_risks():
             managers,
             f"[Task Hub] {len(breached)} ticket(s) breached SLA",
             f"<p>These tickets are past their SLA deadline:</p><ul>{items}</ul>"
-            f'<p><a href="/taskhub/tickets?breached=1">Open the breach list →</a></p>',
+            f'<p><a href="{hub_url("/taskhub/tickets?breached=1")}">'
+            f"Open the breach list →</a></p>",
         )
         for t in breached:
             frappe.db.set_value("Hub Ticket", t.name, "sla_breach_notified", 1,
@@ -351,6 +363,7 @@ def send_monthly_scorecard():
         f"<td>{str(p['sla_compliance_pct']) + '%' if p['sla_compliance_pct'] is not None else '—'}</td></tr>"
         for p in people
     )
+    teams_link = hub_url("/taskhub/teams")
     _sendmail(
         _manager_emails(s),
         "[Task Hub] Monthly performance scorecard",
@@ -367,7 +380,7 @@ def send_monthly_scorecard():
               <th>Avg hours</th><th>SLA on-time</th></tr>
           {prows}
         </table>
-        <p><a href="/taskhub/teams">Open the Teams view →</a></p>""",
+        <p><a href="{teams_link}">Open the Teams view →</a></p>""",
     )
 
 
@@ -422,5 +435,5 @@ def send_weekly_digest():
           <tr><th>Portal</th><th>New</th><th>Resolved</th>
               <th>Open now</th><th>Breached</th></tr>""" + rows + """
         </table>
-        <p><a href="/taskhub">Open the Task Hub →</a></p>""",
+        <p>""" + _link(hub_url("/taskhub"), "Open the Task Hub →") + """</p>""",
     )
