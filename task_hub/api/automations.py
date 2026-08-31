@@ -3,7 +3,7 @@ Hub Automation Rule controller)."""
 import frappe
 from frappe import _
 
-from task_hub.api.utils import gate_read, gate_manager
+from task_hub.api.utils import gate_manager
 
 FIELDS = ["name", "rule_name", "active", "workspace", "trigger", "stuck_days",
           "action", "action_user", "action_priority"]
@@ -11,7 +11,9 @@ FIELDS = ["name", "rule_name", "active", "workspace", "trigger", "stuck_days",
 
 @frappe.whitelist()
 def list_rules():
-    gate_read()
+    """Manager-only: this is the rule engine's configuration — which boards it
+    watches, who it assigns work to — and only the settings screen reads it."""
+    gate_manager()
     return frappe.get_all("Hub Automation Rule", fields=FIELDS,
                           order_by="rule_name asc")
 

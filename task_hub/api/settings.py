@@ -1,18 +1,31 @@
-"""Task Hub settings — read for everyone, write for managers."""
+"""Task Hub settings — the shared rules everyone works under are readable
+by everyone; the operational knobs are manager-only, read and write."""
 import frappe
 from frappe import _
 
-from task_hub.api.utils import gate_read, gate_manager
+from task_hub.api.utils import gate_read, gate_manager, is_manager
 
-FIELDS = [
+# What every signed-in user may read: the rules their own tickets are judged
+# by (SLA budgets, defaults) plus what the SPA needs to run. Harmless to know,
+# and the app shows most of it on screen anyway.
+PUBLIC_FIELDS = [
     "sla_urgent_hours", "sla_high_hours", "sla_medium_hours", "sla_low_hours",
     "default_ticket_type", "default_priority", "auto_refresh_seconds",
+    "ai_polish",
+]
+
+# Operational configuration — automation thresholds, who gets the digest, who
+# may be assigned work. Nobody outside the settings screen reads these, and
+# digest_recipients is a list of people's addresses.
+MANAGER_FIELDS = [
     "auto_overdue_invoices", "overdue_invoice_days",
     "auto_stuck_orders", "stuck_order_days", "max_auto_tickets_per_run",
     "auto_item_content", "item_content_days",
     "notify_on_assignment", "notify_sla", "weekly_digest", "digest_recipients",
-    "assignee_scope", "ai_polish",
+    "assignee_scope",
 ]
+
+FIELDS = PUBLIC_FIELDS + MANAGER_FIELDS
 
 # Check fields arrive as 0/1 and may legitimately be 0 — updated even when falsy.
 CHECK_FIELDS = {
@@ -35,9 +48,11 @@ BOUNDS = {  # sane clamps so a typo can't produce a 0-hour or 10-year SLA
 
 @frappe.whitelist()
 def get_settings():
+    """Everyone gets the shared rules; managers additionally get the knobs."""
     gate_read()
     s = frappe.get_cached_doc("Task Hub Settings")
-    return {f: s.get(f) for f in FIELDS}
+    fields = FIELDS if is_manager() else PUBLIC_FIELDS
+    return {f: s.get(f) for f in fields}
 
 
 @frappe.whitelist()

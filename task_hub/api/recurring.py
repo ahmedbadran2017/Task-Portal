@@ -2,7 +2,7 @@
 import frappe
 from frappe import _
 
-from task_hub.api.utils import gate_read, gate_manager
+from task_hub.api.utils import gate_manager
 
 FIELDS = ["name", "title", "active", "frequency", "weekday", "day_of_month",
           "ticket_type", "priority", "source_portal", "assigned_to",
@@ -11,7 +11,9 @@ FIELDS = ["name", "title", "active", "frequency", "weekday", "day_of_month",
 
 @frappe.whitelist()
 def list_rules():
-    gate_read()
+    """Manager-only, same as the automation rules: schedule configuration,
+    read by nothing but the settings screen."""
+    gate_manager()
     return frappe.get_all("Hub Recurring Ticket", fields=FIELDS,
                           order_by="creation desc")
 

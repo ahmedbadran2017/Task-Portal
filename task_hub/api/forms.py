@@ -10,7 +10,7 @@ import frappe
 from frappe import _
 from frappe.utils import add_days, nowdate
 
-from task_hub.api.utils import gate_read, gate_manager
+from task_hub.api.utils import gate_read, gate_manager, is_manager
 
 FIELDS = ["name", "form_name", "workspace", "icon", "active", "help_text",
           "ticket_type", "priority", "default_assignee", "due_in_days"]
@@ -18,9 +18,14 @@ FIELDS = ["name", "form_name", "workspace", "icon", "active", "help_text",
 
 @frappe.whitelist()
 def list_forms(all_forms=0):
-    """Active forms for everyone; managers may ask for inactive ones too."""
+    """Active forms for everyone; managers may ask for inactive ones too.
+
+    The manager check is the point: without it `all_forms=1` handed any
+    signed-in user the drafts and retired forms this promised to keep back.
+    """
     gate_read()
-    filters = {} if int(all_forms or 0) else {"active": 1}
+    show_all = int(all_forms or 0) and is_manager()
+    filters = {} if show_all else {"active": 1}
     rows = frappe.get_all("Hub Request Form", filters=filters, fields=FIELDS,
                           order_by="form_name asc")
     for r in rows:

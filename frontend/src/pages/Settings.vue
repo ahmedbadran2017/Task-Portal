@@ -48,7 +48,8 @@
             <option v-for="p in PRIORITIES" :key="p" :value="p">{{ t(p) }}</option>
           </select>
         </div>
-        <div class="col-span-2">
+        <!-- manager-only field: get_settings withholds it from everyone else -->
+        <div v-if="canEdit" class="col-span-2">
           <label class="label">{{ t("Who can be assigned tickets") }}</label>
           <select v-model="form.assignee_scope" class="input" :disabled="!canEdit">
             <option value="Employees only">{{ t("Employees only") }}</option>
@@ -77,7 +78,7 @@
       </div>
     </div>
 
-    <div class="card p-6">
+    <div v-if="canEdit" class="card p-6">
       <h3 class="text-sm font-bold text-ink-900 mb-1">{{ t("Auto-tickets") }}</h3>
       <p class="text-xs text-ink-400 mb-5">
         {{ t("Daily rules that open tickets from live ERP data.") }}
@@ -134,7 +135,7 @@
       </div>
     </div>
 
-    <div class="card p-6">
+    <div v-if="canEdit" class="card p-6">
       <h3 class="text-sm font-bold text-ink-900 mb-5">{{ t("Notifications") }}</h3>
       <div class="space-y-4">
         <div class="flex items-center justify-between gap-4">
@@ -305,7 +306,7 @@
     </div>
 
     <!-- recurring tickets -->
-    <div class="card p-6">
+    <div v-if="canEdit" class="card p-6">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-sm font-bold text-ink-900">{{ t("Recurring tickets") }}</h3>
         <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="showRuleForm = !showRuleForm">
@@ -473,7 +474,7 @@
     </div>
 
     <!-- request forms: work intake between departments -->
-    <div class="card p-6">
+    <div v-if="canEdit" class="card p-6">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-sm font-bold text-ink-900">{{ t("Request forms") }}</h3>
         <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="startNewForm">
@@ -577,7 +578,7 @@
     </div>
 
     <!-- automation rules: when X then Y, no code -->
-    <div class="card p-6">
+    <div v-if="canEdit" class="card p-6">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-sm font-bold text-ink-900">{{ t("Automation rules") }}</h3>
         <button v-if="canEdit" class="btn-outline !py-1.5 text-xs" @click="startNewAuto">
