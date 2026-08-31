@@ -39,6 +39,7 @@ scheduler_events = {
     "weekly": [
         "task_hub.automation.send_weekly_digest",
         "task_hub.api.notifications.purge_old_notifications",
+        "task_hub.api.push.purge_dead_subscriptions",
     ],
     "monthly": [
         "task_hub.automation.send_monthly_scorecard",

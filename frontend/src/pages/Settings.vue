@@ -166,6 +166,8 @@
       </div>
     </div>
 
+    <PushSettings />
+
     <!-- language: personal, applies immediately, no save needed -->
     <div class="card p-6">
       <h3 class="text-sm font-bold text-ink-900 mb-1">Language / اللغة / Langue</h3>
@@ -693,6 +695,8 @@
 import { reactive, ref, computed, onMounted, h } from "vue";
 import UserPicker from "@/components/UserPicker.vue";
 import MemberPicker from "@/components/MemberPicker.vue";
+import PushSettings from "@/components/PushSettings.vue";
+import Toggle from "@/components/Toggle.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import { useToast } from "@/composables/useToast";
 import { useI18n } from "@/composables/useI18n";
@@ -960,34 +964,6 @@ const form = reactive({
 });
 
 // Minimal styled switch — checkbox semantics, house colors.
-const Toggle = {
-  props: { modelValue: [Number, Boolean], disabled: Boolean },
-  emits: ["update:modelValue"],
-  setup(props, { emit }) {
-    return () =>
-      h(
-        "button",
-        {
-          type: "button",
-          class: [
-            "relative w-10 h-6 rounded-full transition-colors shrink-0",
-            props.modelValue ? "bg-brand-500" : "bg-ink-200",
-            props.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
-          ],
-          onClick: () => !props.disabled && emit("update:modelValue", props.modelValue ? 0 : 1),
-        },
-        [
-          h("span", {
-            class: [
-              "absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all",
-              // start/end respect the document direction; `left` never did.
-              props.modelValue ? "start-[18px]" : "start-0.5",
-            ],
-          }),
-        ]
-      );
-  },
-};
 
 // computed so the labels follow a live language switch
 const slaFields = computed(() => [

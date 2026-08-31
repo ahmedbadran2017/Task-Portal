@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "autoname": "field:for_user",
+ "creation": "2026-08-31 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "for_user",
+  "sec_what",
+  "on_assigned",
+  "on_mention",
+  "on_sla",
+  "col_what",
+  "on_comment",
+  "on_resolved",
+  "on_status",
+  "sec_quiet",
+  "quiet_from",
+  "quiet_to"
+ ],
+ "fields": [
+  {"fieldname": "for_user", "fieldtype": "Link", "options": "User", "label": "For User", "reqd": 1, "unique": 1},
+  {"fieldname": "sec_what", "fieldtype": "Section Break", "label": "Buzz my phone when"},
+  {"fieldname": "on_assigned", "fieldtype": "Check", "label": "Work is assigned to me", "default": "1"},
+  {"fieldname": "on_mention", "fieldtype": "Check", "label": "Someone mentions me", "default": "1"},
+  {"fieldname": "on_sla", "fieldtype": "Check", "label": "A deadline is close or missed", "default": "1"},
+  {"fieldname": "col_what", "fieldtype": "Column Break"},
+  {"fieldname": "on_comment", "fieldtype": "Check", "label": "Someone comments on my ticket", "default": "1"},
+  {"fieldname": "on_resolved", "fieldtype": "Check", "label": "My ticket is resolved", "default": "1"},
+  {"fieldname": "on_status", "fieldtype": "Check", "label": "A ticket I watch changes status", "default": "0", "description": "Off by default: watching is a low-attention signal, and this is the noisiest of the six."},
+  {"fieldname": "sec_quiet", "fieldtype": "Section Break", "label": "Quiet hours"},
+  {"fieldname": "quiet_from", "fieldtype": "Time", "label": "Silent from", "description": "Notifications still arrive in the app and by email; only the phone stays quiet."},
+  {"fieldname": "quiet_to", "fieldtype": "Time", "label": "Silent until"}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-08-31 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Push Preference",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

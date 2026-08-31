@@ -1,8 +1,9 @@
 """
 One funnel for every Task Hub notification.
 
-`push()` always writes an in-app Hub Notification and optionally sends an
-email — so the bell and the inbox can never drift apart. Failures are logged,
+`push()` always writes an in-app Hub Notification, optionally sends an email,
+and buzzes the user's phones — so the bell, the inbox and the lock screen can
+never drift apart. Failures are logged,
 never raised: a broken mail setup must not block ticket operations.
 """
 import re
@@ -102,3 +103,20 @@ def push(user, ticket, ntype, message, email_subject=None, email_html=None):
         except Exception:
             frappe.log_error(message=frappe.get_traceback(),
                              title="task_hub: notification email failed")
+
+    # Third channel: the phone. Unlike email it fires for every notification,
+    # not only the ones important enough to mail — what reaches a given phone
+    # is the user's own choice, made once in their notification preferences.
+    try:
+        from task_hub.api import push as web_push
+        web_push.send(
+            user,
+            title="Task Hub",
+            body=message,
+            url=deep_link(ticket) if ticket else hub_url("/taskhub"),
+            ntype=ntype,
+            tag=str(ticket or ntype or "task-hub"),
+        )
+    except Exception:
+        frappe.log_error(message=frappe.get_traceback(),
+                         title="task_hub: push notification failed")

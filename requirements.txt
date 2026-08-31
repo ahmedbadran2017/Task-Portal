@@ -1,1 +1,4 @@
-# Task Hub — no extra pip dependencies beyond Frappe/ERPNext
+# Web Push (phone notifications). Everything else the Task Hub needs already
+# ships with Frappe/ERPNext. If this is missing, push degrades to a logged
+# warning — the bell and email keep working.
+pywebpush>=1.14.0

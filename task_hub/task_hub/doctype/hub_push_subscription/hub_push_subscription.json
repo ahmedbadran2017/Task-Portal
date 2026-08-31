@@ -1,0 +1,38 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-08-31 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "for_user",
+  "endpoint",
+  "p256dh",
+  "auth_secret",
+  "device_label",
+  "last_seen",
+  "failures"
+ ],
+ "fields": [
+  {"fieldname": "for_user", "fieldtype": "Link", "options": "User", "label": "For User", "reqd": 1, "in_standard_filter": 1, "search_index": 1},
+  {"fieldname": "endpoint", "fieldtype": "Small Text", "label": "Endpoint", "reqd": 1, "description": "Push service URL issued by the browser. Identifies the device."},
+  {"fieldname": "p256dh", "fieldtype": "Data", "label": "Client Public Key", "reqd": 1, "length": 255},
+  {"fieldname": "auth_secret", "fieldtype": "Data", "label": "Client Auth Secret", "reqd": 1, "length": 255},
+  {"fieldname": "device_label", "fieldtype": "Data", "label": "Device", "description": "Best-effort description so a person can tell their phones apart."},
+  {"fieldname": "last_seen", "fieldtype": "Datetime", "label": "Last Seen"},
+  {"fieldname": "failures", "fieldtype": "Int", "label": "Consecutive Failures", "default": "0", "description": "A push service returning 404/410 means the browser threw the subscription away."}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-08-31 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Task Hub",
+ "name": "Hub Push Subscription",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
