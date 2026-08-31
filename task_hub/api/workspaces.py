@@ -6,7 +6,8 @@ from frappe import _
 
 from task_hub.api.utils import gate_read, gate_manager, visibility_sql
 from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
-    ensure_default_workspace, workspace_members, GLOBAL_STATUSES)
+    ensure_default_workspace, workspace_members, workspace_leads,
+    GLOBAL_STATUSES)
 
 OPEN_STATES = ("Open", "In Progress", "In Review")
 
@@ -40,12 +41,15 @@ def list_workspaces():
                                order_by="is_default desc, creation asc"):
         ws = frappe.get_cached_doc("Hub Workspace", name)
         members = workspace_members(name)
+        leads = workspace_leads(name)
         out.append({
             "name": ws.name,
             "icon": ws.icon or "🗂️",
             "color": ws.color or "#d45d3e",
             "department": ws.department,
             "extra_members": ws.extra_members or "",
+            "leads": ws.get("leads") or "",
+            "is_lead": user in leads,
             "use_sla": ws.use_sla,
             "track_source_portal": ws.track_source_portal,
             "is_default": ws.is_default,
@@ -73,7 +77,7 @@ def save_workspace(**kwargs):
 
     if not name and kwargs.get("workspace_name"):
         doc.workspace_name = kwargs["workspace_name"].strip()
-    for f in ("icon", "color", "department", "extra_members"):
+    for f in ("icon", "color", "department", "extra_members", "leads"):
         if f in kwargs and kwargs[f] is not None:
             doc.set(f, kwargs[f] or None)
     for flag in ("use_sla", "track_source_portal"):

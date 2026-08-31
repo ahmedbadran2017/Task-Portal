@@ -245,6 +245,18 @@
         </div>
 
         <div>
+          <label class="label">{{ t("Board leads") }}</label>
+          <MemberPicker
+            v-model="wsForm.leads"
+            :users="users"
+            :placeholder="t('Who supervises this board?')"
+          />
+          <p class="text-[11px] text-ink-400 mt-1">
+            {{ t("Leads see and triage every ticket on this board — everyone else only their own.") }}
+          </p>
+        </div>
+
+        <div>
           <label class="label">{{ t("Members added by hand") }}</label>
           <MemberPicker
             v-model="wsForm.extra_members"
@@ -720,6 +732,14 @@ const pickedDeptEmpty = computed(
   () => !!wsForm.value?.department && !deptMembers.value.length
 );
 
+// The doctype stores people as comma/newline text; the pickers want arrays.
+function userList(value) {
+  return String(value || "")
+    .split(/[\n,]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
 function startNewWs() {
   wsForm.value = {
     workspace_name: "",
@@ -727,6 +747,7 @@ function startNewWs() {
     color: "#d45d3e",
     department: "",
     extra_members: [],
+    leads: [],
     use_sla: 1,
     // A brand-new board is a department board far more often than it's a
     // second cross-portal inbox.
@@ -747,10 +768,8 @@ function startEditWs(w) {
     icon: w.icon,
     color: w.color,
     department: w.department || "",
-    extra_members: String(w.extra_members || "")
-      .split(/[\n,]/)
-      .map((s) => s.trim())
-      .filter(Boolean),
+    extra_members: userList(w.extra_members),
+    leads: userList(w.leads),
     use_sla: w.use_sla,
     track_source_portal: w.track_source_portal,
     stages: w.stages.map((s) => ({ ...s })),
@@ -765,6 +784,7 @@ async function saveWs() {
     await saveWorkspace({
       ...wsForm.value,
       extra_members: (wsForm.value.extra_members || []).join(", "),
+      leads: (wsForm.value.leads || []).join(", "),
     });
     wsForm.value = null;
     await reloadWs();

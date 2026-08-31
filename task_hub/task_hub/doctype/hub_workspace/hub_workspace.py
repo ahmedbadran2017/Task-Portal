@@ -34,8 +34,20 @@ def get_default_workspace():
     return name
 
 
+def workspace_leads(name):
+    """Users who supervise this board — they see and triage all of it."""
+    from task_hub.api.utils import split_users
+    ws = frappe.get_cached_doc("Hub Workspace", name)
+    return sorted(set(split_users(ws.get("leads"))))
+
+
 def workspace_members(name):
-    """Department's active employees + explicit extras."""
+    """Department's active employees + explicit extras + the board's leads.
+
+    A lead is a member of the board they run; leaving them out would show a
+    supervisor as an outsider on their own team.
+    """
+    from task_hub.api.utils import split_users
     ws = frappe.get_cached_doc("Hub Workspace", name)
     members = set()
     if ws.department:
@@ -46,9 +58,8 @@ def workspace_members(name):
             fields=["user_id"],
         ):
             members.add(r.user_id)
-    for m in (ws.extra_members or "").replace("\n", ",").split(","):
-        if m.strip():
-            members.add(m.strip())
+    members.update(split_users(ws.extra_members))
+    members.update(split_users(ws.get("leads")))
     return sorted(members)
 
 

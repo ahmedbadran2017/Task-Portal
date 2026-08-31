@@ -20,13 +20,15 @@ export function currentUserId() {
 }
 
 // Mirrors MANAGER_ROLES in task_hub/api/utils.py — managers see the whole
-// hub; everyone else only their own tickets. hasRole() already grants
-// Administrator / System Manager.
+// hub; everyone else only their own tickets plus any board they lead.
+// hasRole() already grants Administrator / System Manager.
+//
+// ERPNext's Purchase/Accounts/Logistics/Stock Manager roles were dropped from
+// both sides: they are day-to-day operational grants, not "runs the Task Hub".
+// Supervising a team is said per board via its leads, which the server checks —
+// this flag stays a pure whole-hub test.
 export function isManager() {
-  return hasRole(
-    "Task Hub Admin", "Task Hub Manager",
-    "Purchase Manager", "Accounts Manager", "Logistics Manager", "Stock Manager"
-  );
+  return hasRole("Task Hub Admin", "Task Hub Manager");
 }
 
 function getCsrf() {

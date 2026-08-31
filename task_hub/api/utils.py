@@ -4,18 +4,22 @@ from frappe import _
 
 
 # Anyone in the org can raise a ticket; these roles are the ones we recognise
-# as Task Hub participants for read/triage. Existing portal manager roles are
-# included so a Purchase/Logistics manager sees their department's tickets
-# without a separate grant.
+# as Task Hub participants for read/triage.
 HUB_ROLES = {
     "Task Hub Admin", "Task Hub Manager", "Task Hub Agent", "Task Hub User",
     "System Manager",
 }
 
+# Company-wide sight. Deliberately only the three roles that mean "runs the
+# Task Hub" — ERPNext's Purchase/Accounts/Logistics/Stock Manager roles used
+# to be here, but they are warehouse and ledger grants handed out for day-to-day
+# work, and they were silently buying whoever held them every ticket in the
+# company plus every employee's performance record.
+#
+# Supervising a team is now said explicitly, per board, via `leads` — see
+# led_workspaces() below.
 MANAGER_ROLES = {
     "Task Hub Admin", "Task Hub Manager", "System Manager",
-    # Cross-portal department heads get manager-level visibility.
-    "Purchase Manager", "Accounts Manager", "Logistics Manager", "Stock Manager",
 }
 
 VALID_PORTALS = {"Supplier", "Accounting", "Logistics", "Purchasing", "JoyAgent",
@@ -53,9 +57,39 @@ def can_view_all(user=None):
     return is_manager(user)
 
 
+def split_users(value):
+    """Comma/newline separated user list → clean list. The doctype stores
+    people this way in `watchers`, `extra_members` and `leads` alike."""
+    return [u.strip() for u in (value or "").replace("\n", ",").split(",") if u.strip()]
+
+
+def led_workspaces(user=None):
+    """Boards this user supervises. A lead sees their whole board, not just
+    the tickets they personally touched — that is the entire point of the
+    role, and it is the middle tier between "my own work" and "everything".
+
+    Cached per request: visibility_sql() runs on every list query.
+    """
+    user = user or frappe.session.user
+    cache = getattr(frappe.local, "_th_led_ws", None)
+    if cache is None:
+        cache = frappe.local._th_led_ws = {}
+    if user not in cache:
+        try:
+            cache[user] = [w.name for w in frappe.get_all(
+                "Hub Workspace", fields=["name", "leads"], ignore_permissions=True)
+                if user in split_users(w.leads)]
+        except Exception:
+            # Pre-migration sites have no `leads` column yet; degrade to
+            # "own work only" rather than failing every ticket list.
+            cache[user] = []
+    return cache[user]
+
+
 def visibility_sql(user=None):
-    """WHERE fragment + params scoping rows to the user's own tickets —
-    reporter, assignee, or watcher. Empty for managers (they see all).
+    """WHERE fragment + params scoping rows to what this user may see:
+    their own tickets (reporter, assignee, watcher) plus every ticket on a
+    board they lead. Empty for managers — they see all.
 
     Watcher matching is exact set membership, not a substring LIKE: the
     latter leaked every ticket watched by `khali@` to `ali@`.
@@ -63,20 +97,26 @@ def visibility_sql(user=None):
     user = user or frappe.session.user
     if can_view_all(user):
         return "", {}
-    return (
-        " AND (reported_by = %(vis_user)s OR assigned_to = %(vis_user)s"
-        " OR FIND_IN_SET(%(vis_user)s,"
-        " REPLACE(COALESCE(watchers, ''), ', ', ',')))",
-        {"vis_user": user},
-    )
+    clause = ("reported_by = %(vis_user)s OR assigned_to = %(vis_user)s"
+              " OR FIND_IN_SET(%(vis_user)s,"
+              " REPLACE(COALESCE(watchers, ''), ', ', ','))")
+    params = {"vis_user": user}
+    led = led_workspaces(user)
+    if led:
+        keys = [f"vis_ws{i}" for i in range(len(led))]
+        clause += " OR workspace IN (%s)" % ", ".join(f"%({k})s" for k in keys)
+        params.update(dict(zip(keys, led)))
+    return f" AND ({clause})", params
 
 
 def can_view_ticket(doc):
-    """Managers, the reporter, the assignee, and watchers may open a ticket."""
+    """Managers, the board's leads, the reporter, the assignee, and watchers."""
     if can_view_all():
         return True
     user = frappe.session.user
     if user in (doc.reported_by, doc.assigned_to):
+        return True
+    if doc.workspace and doc.workspace in led_workspaces(user):
         return True
     try:
         return user in doc.watcher_list()
@@ -91,7 +131,8 @@ def gate_view(doc):
     breaks the whole visibility model."""
     if not can_view_ticket(doc):
         frappe.throw(
-            _("You can only work on tickets you reported, are assigned to, or watch."),
+            _("You can only work on tickets you reported, are assigned to, watch, "
+              "or that sit on a board you lead."),
             frappe.PermissionError)
     return doc
 
@@ -156,14 +197,27 @@ def require_portal(value, workspace=None):
 
 
 def can_edit_ticket(ticket):
-    """A user can edit a ticket if they are a manager, the assignee, or the
-    reporter. `ticket` may be a doc or a name."""
+    """A user can edit a ticket if they are a manager, the assignee, the
+    reporter, or a lead of the board it sits on. `ticket` may be a doc or a
+    name.
+
+    Leads get edit and not merely sight on purpose: a supervisor who can see a
+    ticket stalling on their own board but cannot reassign or re-prioritise it
+    is not supervising anything.
+    """
     if is_manager():
         return True
     user = frappe.session.user
     if isinstance(ticket, str):
-        row = frappe.db.get_value("Hub Ticket", ticket,
-                                  ["reported_by", "assigned_to"], as_dict=True) or {}
-        return user in (row.get("reported_by"), row.get("assigned_to"))
-    return user in (getattr(ticket, "reported_by", None),
-                    getattr(ticket, "assigned_to", None))
+        row = frappe.db.get_value(
+            "Hub Ticket", ticket,
+            ["reported_by", "assigned_to", "workspace"], as_dict=True) or {}
+        workspace = row.get("workspace")
+        people = (row.get("reported_by"), row.get("assigned_to"))
+    else:
+        workspace = getattr(ticket, "workspace", None)
+        people = (getattr(ticket, "reported_by", None),
+                  getattr(ticket, "assigned_to", None))
+    if user in people:
+        return True
+    return bool(workspace) and workspace in led_workspaces(user)

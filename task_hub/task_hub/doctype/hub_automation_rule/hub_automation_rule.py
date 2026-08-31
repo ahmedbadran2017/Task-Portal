@@ -51,12 +51,26 @@ def _apply(rule, tk):
 
     label = _("Automation: {0}").format(rule.rule_name)
     if rule.action == "Notify workspace managers":
+        # Now that boards name their leads, this action can finally mean what
+        # it says: it used to blast every holder of a manager ROLE company-wide,
+        # which had nothing to do with the ticket's workspace.
         from task_hub.api.utils import MANAGER_ROLES
-        managers = {r.parent for r in frappe.get_all(
-            "Has Role",
-            filters={"role": ["in", list(MANAGER_ROLES)], "parenttype": "User"},
-            fields=["parent"])}
-        for user in managers:
+        from task_hub.task_hub.doctype.hub_workspace.hub_workspace import (
+            workspace_leads)
+        targets = set()
+        if tk.workspace:
+            try:
+                targets = set(workspace_leads(tk.workspace))
+            except Exception:
+                targets = set()
+        if not targets:
+            # Board has no lead yet — fall back to the hub's managers rather
+            # than dropping the alert on the floor.
+            targets = {r.parent for r in frappe.get_all(
+                "Has Role",
+                filters={"role": ["in", list(MANAGER_ROLES)], "parenttype": "User"},
+                fields=["parent"])}
+        for user in targets:
             push(user, tk.name, "sla_warning", f"{label} — {tk.title}")
     elif rule.action == "Notify user":
         push(rule.action_user, tk.name, "sla_warning", f"{label} — {tk.title}")
