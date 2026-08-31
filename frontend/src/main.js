@@ -2,6 +2,11 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import router from "./router";
 import "./index.css";
+import { armInstallCapture } from "./composables/useInstall";
+
+// Chrome fires `beforeinstallprompt` early — often before Vue has mounted — so
+// the listener has to be armed before anything else runs.
+armInstallCapture();
 
 const app = createApp(App);
 

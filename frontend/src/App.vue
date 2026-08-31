@@ -147,6 +147,7 @@
     </div>
     <CreateTicketModal />
     <TicketDrawer />
+    <InstallPrompt />
     <Toaster />
   </div>
 </template>
@@ -157,6 +158,7 @@ import { useRoute } from "vue-router";
 import CreateTicketModal from "@/components/CreateTicketModal.vue";
 import TicketDrawer from "@/components/TicketDrawer.vue";
 import Toaster from "@/components/Toaster.vue";
+import InstallPrompt from "@/components/InstallPrompt.vue";
 import NavIcon from "@/components/NavIcon.vue";
 import NotificationBell from "@/components/NotificationBell.vue";
 import WorkspaceSwitcher from "@/components/WorkspaceSwitcher.vue";
